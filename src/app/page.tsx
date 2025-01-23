@@ -2,28 +2,34 @@
 
 import { motion } from "framer-motion"
 import AnimatedBackground from "../components/animated/AnimatedBackground"
-import FloatingIcons from "../components/animated/FloatingIcons"
+import dynamic from "next/dynamic"
 import Link from "next/link"
+
+const FloatingIcons = dynamic(() => import("@/components/animated/FloatingIcons"), { ssr: false });
 
 export default function Home() {
   return (
     <main className="min-h-screen py-20 flex justify-center relative overflow-hidden">
       <AnimatedBackground />
       <FloatingIcons />
-      <section className="space-y-6 text-center z-10 px-4">
+      <section className="space-y-10 text-center z-10 px-4">
+        <span className="mx-auto px-4 sm:px-8 md:px-20 text-base md:text-xl text-gray-700">
+          Discover the magic of AI creativity.
+        </span>
         <motion.h1
-          className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+          className="text-3xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           Create Stunning{" "}
+          <br />
           <span className="text-gradient bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-600">
             AI-Generated Images
           </span>
         </motion.h1>
         <motion.p
-          className="mx-auto max-w-[800px] text-lg md:text-xl text-gray-600"
+          className="mx-auto px-4 sm:px-8 md:px-20 text-base md:text-xl text-gray-700"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
