@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(post);
   }
 
-  const posts = await Post.find({ userId });
+  const posts = await Post.find({ userId }).sort({ createdAt: -1 });
 
   return NextResponse.json(posts);
 }

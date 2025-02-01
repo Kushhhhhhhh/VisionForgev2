@@ -3,27 +3,27 @@ import { Cpu, Zap, Palette, UserCheck } from "lucide-react";
 export const features = [
   {
     icon: Cpu,
-    title: "Cutting-Edge AI Engine",
+    title: "Powerful AI Image Generation",
     description:
-      "Leverage advanced AI algorithms to generate stunning and realistic images effortlessly.",
+      "Harness the power of cutting-edge AI to create stunning, high-quality images with just a few clicks.",
   },
   {
     icon: Zap,
-    title: "Unlimited Free Generations",
+    title: "Unlimited Image Creations",
     description:
-      "Create as many images as you want without any limitations or hidden costs.",
+      "Generate as many images as you need, completely free, with no restrictions or hidden fees.",
   },
   {
     icon: Palette,
-    title: "Customizable Effects",
+    title: "Creative Customization",
     description:
-      "Enhance your creations with a variety of effects, styles, and themes to suit your vision.",
+      "Tailor your images with a wide range of effects, styles, and themes to bring your ideas to life.",
   },
   {
     icon: UserCheck,
-    title: "Personalized User Profiles",
+    title: "Seamless User Experience",
     description:
-      "Access your history, download past creations, or manage your gallery with ease.",
+      "Enjoy a personalized profile where you can store, download, and manage your creations effortlessly.",
   },
 ];
 
