@@ -15,15 +15,12 @@ export default function CreateForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!prompt.trim()) {
       console.error("Prompt cannot be empty.");
       return;
     }
-
     console.log("Generating image for prompt:", prompt);
-    setLoading(true); 
-
+    setLoading(true);
     try {
       const response = await fetch("/api/image", {
         method: "POST",
@@ -32,18 +29,17 @@ export default function CreateForm() {
         },
         body: JSON.stringify({ prompt }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error:", errorData.error || "Something went wrong");
+        alert(`Error: ${errorData.error || "Something went wrong"}`);
         setLoading(false);
         return;
       }
-
       const data = await response.json();
       setImageUrl(data.url);
     } catch (error) {
       console.error("Failed to fetch API:", error);
+      alert("An unexpected error occurred. Please try again later.");
     } finally {
       setLoading(false);
     }
