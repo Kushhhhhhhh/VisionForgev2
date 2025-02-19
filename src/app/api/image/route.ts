@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
       randomize_seed: false,
       width: 800,
       height: 800,
-      guidance_scale: 7,
-      num_inference_steps: 20,
+      guidance_scale: 5,
+      num_inference_steps: 10,
     });
 
-    console.log("Gradio response:", result);
+    console.log("Gradio response:", result.data);
 
     if (Array.isArray(result.data) && result.data.length > 0) {
       const imageData = result.data[0];
