@@ -4,44 +4,39 @@ import { connectToDB } from "@/lib/db";
 import Post from "@/model/postModel";
 import { Client } from "@gradio/client";
 
-// Helper function to generate a random seed
-function generateRandomNumber(): number {
-  return Math.floor(Math.random() * 100000000) + 1;
-}
-
 export async function POST(request: NextRequest) {
-  const { userId } = getAuth(request);
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized. Please log in to proceed." },
-      { status: 401 }
-    );
-  }
-
-  const { prompt }: { prompt: string } = await request.json();
-  if (!prompt.trim()) {
-    return NextResponse.json(
-      { error: "Prompt cannot be empty." },
-      { status: 400 }
-    );
-  }
-
-  const randomSeed = 42; // Fixed seed for consistency
-  const width = 800; // Increased resolution
-  const height = 800;
-  const guidance_scale = 7; // Improved detail
-  const num_inference_steps = 20; // More inference steps
-
+  console.log("API request received");
   try {
+    const { userId } = getAuth(request);
+    if (!userId) {
+      console.error("Unauthorized access attempt");
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in to proceed." },
+        { status: 401 }
+      );
+    }
+
+    const { prompt }: { prompt: string } = await request.json();
+    if (!prompt.trim()) {
+      console.error("Empty prompt received");
+      return NextResponse.json(
+        { error: "Prompt cannot be empty." },
+        { status: 400 }
+      );
+    }
+
+    console.log("Connecting to Gradio client...");
     const client = await Client.connect("black-forest-labs/FLUX.1-dev");
+
+    console.log("Calling Gradio model for inference...");
     const result = await client.predict("/infer", {
       prompt: prompt,
-      seed: randomSeed,
-      randomize_seed: false, // Disable randomization
-      width: width,
-      height: height,
-      guidance_scale: guidance_scale,
-      num_inference_steps: num_inference_steps,
+      seed: 42,
+      randomize_seed: false,
+      width: 800,
+      height: 800,
+      guidance_scale: 7,
+      num_inference_steps: 20,
     });
 
     console.log("Gradio response:", result);
@@ -59,6 +54,7 @@ export async function POST(request: NextRequest) {
         });
         await newPost.save();
 
+        console.log("Image URL saved successfully:", imageUrl);
         return NextResponse.json({ url: imageUrl });
       } else {
         console.error("Unexpected response format:", result.data);
@@ -75,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error("Error generating image:", error);
+    console.error("Error in API route:", error);
     return NextResponse.json(
       { error: "Failed to generate image. Please try again later." },
       { status: 500 }

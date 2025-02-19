@@ -16,10 +16,9 @@ export default function CreateForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) {
-      console.error("Prompt cannot be empty.");
+      alert("Prompt cannot be empty.");
       return;
     }
-    console.log("Generating image for prompt:", prompt);
     setLoading(true);
     try {
       const response = await fetch("/api/image", {
