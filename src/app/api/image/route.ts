@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     const result = await client.predict("/infer", {
       prompt: prompt,
       seed: 42,
-      randomize_seed: false,
+      randomize_seed: true,
       width: 800,
       height: 800,
-      guidance_scale: 5,
-      num_inference_steps: 10,
+      guidance_scale: 7.5,
+      num_inference_steps: 23,
     });
 
     console.log("Gradio response:", result.data);
