@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const result = await client.predict("/infer", {
       prompt: prompt,
       seed: 42,
-      randomize_seed: false,
+      randomize_seed: true,
       width: 800,
       height: 800,
       guidance_scale: 3.5,
@@ -173,4 +173,33 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
+<<<<<<< HEAD
 }
+=======
+
+  await connectToDB();
+  const post = await Post.findById(postId);
+  console.log("Post found:", post);
+
+  if (!post) {
+    return NextResponse.json(
+      { error: "Post not found." },
+      { status: 404 }
+    );
+  }
+
+  const { userId } = post;
+  if (post.userId !== userId) {
+    return NextResponse.json(
+      { error: "Unauthorized to delete this post." },
+      { status: 403 }
+    );
+  }
+
+  await post.deleteOne();
+  return NextResponse.json(
+    { message: "Post deleted successfully." },
+    { status: 200 }
+  );
+}
+>>>>>>> da117817b1e7ce22473216720e0443a6b03d7691
