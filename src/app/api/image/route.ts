@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/db";
 import Post from "@/model/postModel";
 import { Client } from "@gradio/client";
+import uploadImageToCloudinary from "@/lib/upload-to-cloud";
 
 export async function POST(request: NextRequest) {
   console.log("API request received");
@@ -26,17 +27,18 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Connecting to Gradio client...");
-    const client = await Client.connect("black-forest-labs/FLUX.1-dev");
 
+    const client = await Client.connect("black-forest-labs/FLUX.1-dev");
     console.log("Calling Gradio model for inference...");
+
     const result = await client.predict("/infer", {
       prompt: prompt,
       seed: 42,
       randomize_seed: false,
       width: 800,
       height: 800,
-      guidance_scale: 5,
-      num_inference_steps: 10,
+      guidance_scale: 3.5,
+      num_inference_steps: 12,
     });
 
     console.log("Gradio response:", result.data);
@@ -46,16 +48,22 @@ export async function POST(request: NextRequest) {
       if (typeof imageData === "object" && imageData !== null && "url" in imageData) {
         const imageUrl = imageData.url;
 
+        // Step 1: Upload the image to Cloudinary
+        console.log("Uploading image to Cloudinary...");
+
+        const cloudinaryUrl = await uploadImageToCloudinary(imageUrl, prompt);
+
+        // Step 2: Save the Cloudinary URL to MongoDB
         await connectToDB();
         const newPost = new Post({
           userId,
-          imageUrl,
+          imageUrl: cloudinaryUrl, // Use the Cloudinary URL instead of the Gradio URL
           prompt,
         });
         await newPost.save();
 
-        console.log("Image URL saved successfully:", imageUrl);
-        return NextResponse.json({ url: imageUrl });
+        console.log("Image URL saved successfully:", cloudinaryUrl);
+        return NextResponse.json({ url: cloudinaryUrl });
       } else {
         console.error("Unexpected response format:", result.data);
         return NextResponse.json(
@@ -108,39 +116,61 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const postId = searchParams.get("id");
-  console.log("Received postId:", postId);
+  try {
+    // Extract the authenticated user's ID
+    const { userId: authUserId } = getAuth(request);
+    if (!authUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in to proceed." },
+        { status: 401 }
+      );
+    }
 
-  if (!postId) {
+    // Extract postId from query parameters
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get("id");
+    console.log("Received postId:", postId);
+
+    if (!postId) {
+      return NextResponse.json(
+        { error: "Post ID is required." },
+        { status: 400 }
+      );
+    }
+
+    // Connect to the database
+    await connectToDB();
+
+    // Find the post by ID
+    const post = await Post.findById(postId);
+    console.log("Post found:", post);
+
+    if (!post) {
+      return NextResponse.json(
+        { error: "Post not found." },
+        { status: 404 }
+      );
+    }
+
+    // Ensure the authenticated user is authorized to delete the post
+    if (post.userId.toString() !== authUserId) {
+      return NextResponse.json(
+        { error: "Unauthorized to delete this post." },
+        { status: 403 }
+      );
+    }
+
+    // Delete the post
+    await post.deleteOne();
     return NextResponse.json(
-      { error: "Post ID is required." },
-      { status: 400 }
+      { message: "Post deleted successfully." },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error in DELETE route:", error);
+    return NextResponse.json(
+      { error: "Failed to delete post. Please try again later." },
+      { status: 500 }
     );
   }
-
-  await connectToDB();
-  const post = await Post.findById(postId);
-  console.log("Post found:", post);
-
-  if (!post) {
-    return NextResponse.json(
-      { error: "Post not found." },
-      { status: 404 }
-    );
-  }
-
-  const { userId } = post;
-  if (post.userId !== userId) {
-    return NextResponse.json(
-      { error: "Unauthorized to delete this post." },
-      { status: 403 }
-    );
-  }
-
-  await post.deleteOne();
-  return NextResponse.json(
-    { message: "Post deleted successfully." },
-    { status: 200 }
-  );
 }
