@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       width: width, 
       height: height,
       guidance_scale: 3.5,
-      num_inference_steps: 16,
+      num_inference_steps: 12,
     });
 
     console.log("Gradio response:", result.data);
