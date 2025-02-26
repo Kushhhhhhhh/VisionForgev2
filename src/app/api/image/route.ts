@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt }: { prompt: string } = await request.json();
+    // Parse the request body
+    const { prompt, aspectRatio }: { prompt: string; aspectRatio: string } = await request.json();
+
     if (!prompt.trim()) {
       console.error("Empty prompt received");
       return NextResponse.json(
@@ -26,19 +28,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let width = 800;
+    let height = 800;
+
+    switch (aspectRatio) {
+      case "1:1":
+        width = 800;
+        height = 800;
+        break;
+      case "16:9":
+        width = 1280;
+        height = 720;
+        break;
+      case "4:3":
+        width = 1024;
+        height = 768;
+        break;
+      default:
+        console.warn(`Unsupported aspect ratio: ${aspectRatio}. Using default 1:1.`);
+        break;
+    }
+
     console.log("Connecting to Gradio client...");
-
     const client = await Client.connect("black-forest-labs/FLUX.1-dev");
-    console.log("Calling Gradio model for inference...");
 
+    console.log("Calling Gradio model for inference...");
     const result = await client.predict("/infer", {
       prompt: prompt,
       seed: 42,
       randomize_seed: true,
-      width: 800,
-      height: 800,
+      width: width, 
+      height: height,
       guidance_scale: 3.5,
-      num_inference_steps: 12,
+      num_inference_steps: 16,
     });
 
     console.log("Gradio response:", result.data);
@@ -50,7 +72,6 @@ export async function POST(request: NextRequest) {
 
         // Step 1: Upload the image to Cloudinary
         console.log("Uploading image to Cloudinary...");
-
         const cloudinaryUrl = await uploadImageToCloudinary(imageUrl, prompt);
 
         // Step 2: Save the Cloudinary URL to MongoDB
