@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/db";
 import Post from "@/model/postModel";
-import { Client } from "@gradio/client";
+import axios from "axios";
 import uploadImageToCloudinary from "@/lib/upload-to-cloud";
 
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the request body
+    // Parse request body
     const { prompt, aspectRatio }: { prompt: string; aspectRatio: string } = await request.json();
 
     if (!prompt.trim()) {
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Set dimensions based on aspect ratio
     let width = 800;
     let height = 800;
 
@@ -41,66 +42,51 @@ export async function POST(request: NextRequest) {
         height = 720;
         break;
       case "4:3":
-        width = 1024;
-        height = 768;
+        width = 768;
+        height = 1024;
         break;
       default:
         console.warn(`Unsupported aspect ratio: ${aspectRatio}. Using default 1:1.`);
         break;
     }
 
-    console.log("Connecting to Gradio client...");
-    const client = await Client.connect("black-forest-labs/FLUX.1-dev");
-
-    console.log("Calling Gradio model for inference...");
-    const result = await client.predict("/infer", {
-      prompt: prompt,
-      seed: 42,
-      randomize_seed: true,
-      width: width, 
-      height: height,
-      guidance_scale: 3.5,
-      num_inference_steps: 16,
-    });
-
-    console.log("Gradio response:", result.data);
-
-    if (Array.isArray(result.data) && result.data.length > 0) {
-      const imageData = result.data[0];
-      if (typeof imageData === "object" && imageData !== null && "url" in imageData) {
-        const imageUrl = imageData.url;
-
-        // Step 1: Upload the image to Cloudinary
-        console.log("Uploading image to Cloudinary...");
-        const cloudinaryUrl = await uploadImageToCloudinary(imageUrl, prompt);
-
-        // Step 2: Save the Cloudinary URL to MongoDB
-        await connectToDB();
-        const newPost = new Post({
-          userId,
-          imageUrl: cloudinaryUrl, // Use the Cloudinary URL instead of the Gradio URL
-          prompt,
-        });
-        await newPost.save();
-
-        console.log("Image URL saved successfully:", cloudinaryUrl);
-        return NextResponse.json({ url: cloudinaryUrl });
-      } else {
-        console.error("Unexpected response format:", result.data);
-        return NextResponse.json(
-          { error: "Failed to generate image due to unexpected response format." },
-          { status: 500 }
-        );
+    console.log("Calling Pollination AI for inference...");
+    const response = await axios.get(
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`,
+      {
+        params: {
+          model: 'flux', // High-quality model
+          width,
+          height,
+          seed: 42, // Reproducible results
+          private: true, // Disable watermark and public visibility
+          enhance: true, // Enhance prompt for better results
+        },
+        responseType: 'arraybuffer', // Get image as binary data
       }
-    } else {
-      console.error("Unexpected response format:", result.data);
-      return NextResponse.json(
-        { error: "Failed to generate image due to unexpected response format." },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error("Error in API route:", error);
+    );
+
+    // Convert image buffer to base64 data URI
+    const imageBase64 = Buffer.from(response.data).toString('base64');
+    const dataUri = `data:image/jpeg;base64,${imageBase64}`;
+
+    // Upload to Cloudinary
+    console.log("Uploading image to Cloudinary...");
+    const cloudinaryUrl = await uploadImageToCloudinary(dataUri, prompt);
+
+    // Save to MongoDB
+    await connectToDB();
+    const newPost = new Post({
+      userId,
+      imageUrl: cloudinaryUrl,
+      prompt,
+    });
+    await newPost.save();
+
+    console.log("Image URL saved successfully:", cloudinaryUrl);
+    return NextResponse.json({ url: cloudinaryUrl });
+  } catch (error: any) {
+    console.error("Error in API route:", error.message || error);
     return NextResponse.json(
       { error: "Failed to generate image. Please try again later." },
       { status: 500 }
@@ -138,7 +124,6 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Extract the authenticated user's ID
     const { userId: authUserId } = getAuth(request);
     if (!authUserId) {
       return NextResponse.json(
@@ -147,7 +132,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Extract postId from query parameters
     const { searchParams } = new URL(request.url);
     const postId = searchParams.get("id");
     console.log("Received postId:", postId);
@@ -159,10 +143,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Connect to the database
     await connectToDB();
 
-    // Find the post by ID
     const post = await Post.findById(postId);
     console.log("Post found:", post);
 
@@ -173,7 +155,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Ensure the authenticated user is authorized to delete the post
     if (post.userId.toString() !== authUserId) {
       return NextResponse.json(
         { error: "Unauthorized to delete this post." },
@@ -181,7 +162,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the post
     await post.deleteOne();
     return NextResponse.json(
       { message: "Post deleted successfully." },
