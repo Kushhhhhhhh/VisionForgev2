@@ -1,22 +1,24 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-export function PlaceholdersAndVanishInput({
-  placeholders,
-  onChange,
-  onSubmit,
-}: {
+type PlaceholdersAndVanishInputProps = {
   placeholders: string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-}) {
+};
+
+const PlaceholdersAndVanishInput = forwardRef<
+  HTMLInputElement,
+  PlaceholdersAndVanishInputProps
+>(({ placeholders, onChange, onSubmit }, ref) => {
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
-  const [isTyping, setIsTyping] = useState(false); // Track if user is typing
+  const [isTyping, setIsTyping] = useState(false); 
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const startAnimation = () => {
     intervalRef.current = setInterval(() => {
       setCurrentPlaceholder((prev) => (prev + 1) % placeholders.length);
@@ -25,10 +27,10 @@ export function PlaceholdersAndVanishInput({
 
   const handleVisibilityChange = () => {
     if (document.visibilityState !== "visible" && intervalRef.current) {
-      clearInterval(intervalRef.current); // Clear the interval when the tab is not visible
+      clearInterval(intervalRef.current);
       intervalRef.current = null;
     } else if (document.visibilityState === "visible") {
-      startAnimation(); // Restart the interval when the tab becomes visible
+      startAnimation();
     }
   };
 
@@ -49,6 +51,14 @@ export function PlaceholdersAndVanishInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    if (typeof ref === "function") {
+      ref(inputRef.current);
+    } else if (ref) {
+      ref.current = inputRef.current;
+    }
+  }, [ref]);
 
   const draw = useCallback(() => {
     if (!inputRef.current) return;
@@ -177,12 +187,11 @@ export function PlaceholdersAndVanishInput({
     onSubmit && onSubmit(e);
   };
 
-  // Update the placeholder visibility based on typing state
   useEffect(() => {
     if (value) {
-      setIsTyping(true); // User is typing
+      setIsTyping(true); 
     } else {
-      setIsTyping(false); // User is not typing
+      setIsTyping(false); 
     }
   }, [value]);
 
@@ -258,7 +267,7 @@ export function PlaceholdersAndVanishInput({
 
       <div className="absolute inset-0 flex items-center rounded-full pointer-events-none">
         <AnimatePresence mode="wait">
-          {!value && !isTyping && ( // Only show placeholder when not typing
+          {!value && !isTyping && ( 
             <motion.p
               initial={{
                 y: 5,
@@ -286,4 +295,8 @@ export function PlaceholdersAndVanishInput({
       </div>
     </form>
   );
-}
+});
+
+PlaceholdersAndVanishInput.displayName = "PlaceholdersAndVanishInput";
+
+export default PlaceholdersAndVanishInput;

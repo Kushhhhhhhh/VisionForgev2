@@ -36,7 +36,7 @@ const Header = () => {
     <header className="px-4 lg:px-8 h-16 flex items-center justify-between">
       
       <Link href="/" className="flex items-center gap-2">
-        <span className="font-extrabold font-sans text-2xl md:text-3xl">Vision Forge</span>
+        <span className="font-extrabold font-sans text-2xl md:text-3xl">VisionForge</span>
       </Link>
 
       <nav className="hidden md:flex gap-6">
@@ -102,7 +102,7 @@ const Header = () => {
             </svg>
           </Button>
         </div>
-        <nav className="flex flex-col gap-8 mt-4 px-4 py-2">
+        <nav className="flex flex-col gap-8 mt-4 px-4 py-2 ml-4">
           {navItems.map((link) => (
             <Link
               key={link.href}

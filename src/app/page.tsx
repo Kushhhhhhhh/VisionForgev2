@@ -35,7 +35,7 @@ export default function Home() {
           </span>
         </motion.h1>
         <motion.p
-          className="mx-auto px-4 sm:px-8 md:px-20 text-base md:text-xl text-gray-700"
+          className="mx-auto px-4 sm:px-8 md:px-20 text-base md:text-xl text-gray-700 max-w-7xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
@@ -55,6 +55,9 @@ export default function Home() {
             Get Started
           </Link>
         </motion.div>
+        <div className="flex justify-center items-center">
+          <img src="/frontpage.gif" alt="Front Page GIF" className="object-contain" />
+        </div>
       </section>
     </main>
   );
