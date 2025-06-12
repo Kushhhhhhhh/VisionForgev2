@@ -12,8 +12,8 @@ export default function Home() {
     <main className="min-h-screen py-20 flex justify-center relative overflow-hidden">
       <AnimatedBackground />
       <FloatingIcons />
-      <section className="space-y-6 text-center z-10 px-4">
-        <div className="flex justify-center items-center mb-10">
+      <section className="space-y-6 text-center z-10 px-4 h-full">
+        <div className="flex justify-center items-center my-10">
           <Link
             href="https://www.producthunt.com/products/vision-forge?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-vision&#0045;forge" target="_blank">
             <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=834213&theme=dark&t=1738234916609" alt="Vision&#0032;Forge - Stunning&#0032;AI&#0045;generated&#0032;images&#0044;&#0032;just&#0032;a&#0032;click&#0032;away&#0046; | Product Hunt"
@@ -21,7 +21,7 @@ export default function Home() {
             />
           </Link>
         </div>
-        
+
         <motion.h1
           className="text-3xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
           initial={{ opacity: 0, y: -20 }}
@@ -55,10 +55,10 @@ export default function Home() {
             Get Started
           </Link>
         </motion.div>
-        <div className="flex justify-center items-center">
-          <img src="/frontpage.gif" alt="Front Page GIF" className="object-contain" />
-        </div>
       </section>
+      <div className="absolute bottom-0 w-full flex justify-center z-0 pointer-events-none">
+        <img src="/frontpage.gif" alt="Front Page GIF" className="object-contain max-h-[600px]" />
+      </div>
     </main>
   );
 }
