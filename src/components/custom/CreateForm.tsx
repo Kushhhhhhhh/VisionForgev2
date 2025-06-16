@@ -79,13 +79,29 @@ export default function CreateForm() {
     setPrompt(e.target.value);
   };
 
-  const handleDownload = () => {
-    if (imageUrl) {
+  const handleDownload = async () => {
+    if (!imageUrl) return;
+
+    const sanitizedPrompt = prompt.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
-      const sanitizedPrompt = prompt.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-      link.href = imageUrl;
+      link.href = url;
       link.download = `${sanitizedPrompt}.jpg`;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.referrerPolicy = "no-referrer";
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Failed to download image. Please try again.");
     }
   };
 
@@ -201,21 +217,22 @@ export default function CreateForm() {
           <Button
             onClick={handleDownload}
             disabled={loading || !imageUrl}
-            className={`mt-8 px-8 py-6
-            bg-indigo-500 text-white font-bold
-            border-4 border-black
-            shadow-[8px_8px_0_0_rgba(0,0,0,1)]
-            flex items-center gap-2
-            transition-transform duration-150 active:translate-x-1 active:translate-y-1
-            disabled:opacity-50 disabled:shadow-none disabled:border-gray-400
-            uppercase tracking-wider
-            rounded-none
-            font-brutal
-            ${loading ? "cursor-not-allowed" : ""}
-          `}
+            className={`
+    mt-8 px-8 py-6
+    bg-indigo-600 hover:bg-indigo-700 text-white font-bold
+    border-4 border-black
+    shadow-[4px_4px_0_rgba(0,0,0,1)]
+    flex items-center justify-center gap-2
+    transition-all duration-200 active:translate-x-1 active:translate-y-1
+    disabled:opacity-50 disabled:shadow-none disabled:border-gray-300 disabled:bg-indigo-400
+    uppercase tracking-wider
+    rounded-md
+    font-brutal
+    ${loading ? 'cursor-not-allowed' : 'cursor-pointer'}
+  `}
           >
             <Download className="w-5 h-5" />
-            {loading ? "Downloading..." : "Download"}
+            {loading ? 'Generating...' : imageUrl ? 'Download' : 'No Image to Download'}
           </Button>
           {!imageUrl && !loading && (
             <p className="text-sm text-gray-500">Generate an image to enable download</p>

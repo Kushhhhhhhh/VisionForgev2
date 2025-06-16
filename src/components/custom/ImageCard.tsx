@@ -18,14 +18,30 @@ interface ImageCardProps {
 export default function ImageCard({ image, onDelete }: ImageCardProps) {
   const [isHovered, setIsHovered] = useState(false)
 
-  const handleDownload = () => {
-    const link = document.createElement("a")
-    link.href = image.imageUrl
-    link.download = `ai-image-${image._id}.jpg`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+  const handleDownload = async () => {
+    if (!image?.imageUrl) return;
+
+    try {
+      const response = await fetch(image.imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ai-image-${image._id}.jpg`;
+      link.target = "_blank";
+      link.rel = "noopener";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Failed to download the image. Please try again.");
+    }
+  };
 
   return (
     <Card className="overflow-hidden" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
