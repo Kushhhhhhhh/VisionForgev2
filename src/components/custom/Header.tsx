@@ -15,7 +15,6 @@ import { navItems } from "@/data/data";
 import { CiMenuBurger } from "react-icons/ci";
 
 const Header = () => {
-
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -26,116 +25,131 @@ const Header = () => {
     }
   }, [isLoaded, user, router]);
 
-  if (!isLoaded) return null;
-
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  if (!isLoaded) return null;
+
   return (
-    <header className="px-4 lg:px-8 h-16 flex items-center justify-between">
+    <header className="fixed top-0 left-0 w-full z-[1000] bg-white">
+      <div className="px-4 lg:px-8 h-16 flex items-center justify-between max-w-7xl mx-auto">
       
-      <Link href="/" className="flex items-center gap-2">
-        <span className="font-extrabold font-sans text-2xl md:text-3xl">VisionForge</span>
-      </Link>
+        <Link href="/" className="flex items-center gap-2">
+          <span className="font-extrabold font-sans text-2xl md:text-3xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            VisionForge
+          </span>
+        </Link>
 
-      <nav className="hidden md:flex gap-6">
-        {navItems.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="text-base md:text-lg font-medium hover:text-gray-800 transition-colors duration-200"
-          >
-            {link.label}
-          </Link>
-        ))}
-
-        <SignedOut>
-          <SignInButton />
-        </SignedOut>
-        <SignedIn>
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: "h-8 w-8 hover:border-2 hover:border-black rounded-full",
-              },
-            }}
-          />
-        </SignedIn>
-      </nav>
-
-      <div className="md:hidden">
-        <Button
-          className="focus:outline-none"
-          variant="default"
-          onClick={toggleMobileMenu}
-        >
-          <CiMenuBurger />
-        </Button>
-      </div>
-
-      <div
-        className={`fixed top-0 right-0 h-full bg-black w-64 shadow-lg transform ${
-          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        } transition-transform duration-300 z-50`}
-      >
-        <div className="flex justify-between items-center px-4 py-4 border-b border-gray-700">
-          <span className="text-xl font-bold text-white">Menu</span>
-          <Button
-            className="text-black bg-white rounded-full focus:outline-none"
-            variant="ghost"
-            onClick={toggleMobileMenu}
-          >
-            <svg
-              className="w-8 h-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </Button>
-        </div>
-        <nav className="flex flex-col gap-8 mt-4 px-4 py-2 ml-4">
+        <nav className="hidden md:flex gap-6 items-center">
           {navItems.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-lg font-medium text-white hover:text-gray-300 transition-colors duration-200"
-              onClick={toggleMobileMenu}
+              className="text-base md:text-lg font-medium text-gray-700 hover:text-purple-600 transition-colors duration-200"
             >
               {link.label}
             </Link>
           ))}
 
           <SignedOut>
-            <SignInButton />
+            <SignInButton>
+              <Button
+                variant="outline"
+                className="border-purple-600 text-purple-600 hover:bg-purple-50"
+              >
+                Sign In
+              </Button>
+            </SignInButton>
           </SignedOut>
+
           <SignedIn>
             <UserButton
               appearance={{
                 elements: {
                   userButtonAvatarBox:
-                    "h-12 w-12 border-2 border-black rounded-full",
+                    "h-9 w-9 hover:border-2 hover:border-purple-600 rounded-full transition-all",
                 },
               }}
             />
           </SignedIn>
         </nav>
+
+        <div className="md:hidden">
+          <Button
+            className="p-2"
+            variant="ghost"
+            onClick={toggleMobileMenu}
+            aria-label="Toggle menu"
+          >
+            <CiMenuBurger className="w-6 h-6 text-gray-700" />
+          </Button>
+        </div>
       </div>
 
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999]"
           onClick={toggleMobileMenu}
         ></div>
       )}
+
+      <div
+        className={`fixed top-0 right-0 h-full bg-white w-72 max-w-sm shadow-xl z-[1000] transform ${
+          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        } transition-transform duration-300`}
+      >
+        <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
+          <span className="text-xl font-bold text-gray-900">Menu</span>
+          <Button
+            className="text-gray-500 hover:text-gray-900 p-2"
+            variant="ghost"
+            onClick={toggleMobileMenu}
+            aria-label="Close menu"
+          >
+            ✕
+          </Button>
+        </div>
+
+        <nav className="flex flex-col gap-1 px-6 py-4">
+          {navItems.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="px-2 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
+              onClick={toggleMobileMenu}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-gray-200">
+          <SignedOut>
+            <SignInButton>
+              <Button className="w-full" variant="default">
+                Sign In
+              </Button>
+            </SignInButton>
+          </SignedOut>
+
+          <SignedIn>
+            <div className="flex items-center gap-3">
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "h-10 w-10",
+                  },
+                }}
+              />
+              <span className="text-gray-800 font-medium">
+                {user?.firstName || "My Account"}
+              </span>
+            </div>
+
+          </SignedIn>
+        </div>
+      </div>
     </header>
   );
 };

@@ -1,36 +1,8 @@
-import { Cpu, Zap, Palette, UserCheck } from "lucide-react";
-
-export const features = [
-  {
-    icon: Cpu,
-    title: "Powerful AI Image Generation",
-    description:
-      "Harness the power of cutting-edge AI to create stunning, high-quality images with just a few clicks.",
-  },
-  {
-    icon: Zap,
-    title: "Unlimited Image Creations",
-    description:
-      "Generate as many images as you need, completely free, with no restrictions or hidden fees.",
-  },
-  {
-    icon: Palette,
-    title: "Creative Customization",
-    description:
-      "Tailor your images with a wide range of effects, styles, and themes to bring your ideas to life.",
-  },
-  {
-    icon: UserCheck,
-    title: "Seamless User Experience",
-    description:
-      "Enjoy a personalized profile where you can store, download, and manage your creations effortlessly.",
-  },
-];
-
 export const navItems = [
   { href: "/about", label: "About" },
   { href: "/create", label: "Create" },
   { href: "/profile", label: "Profile" },
+  // { href: "/gallery", label: "Gallery"}
 ];
 
 export const images = [

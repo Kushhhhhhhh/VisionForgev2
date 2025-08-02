@@ -8,14 +8,16 @@ type PlaceholdersAndVanishInputProps = {
   placeholders: string[];
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  value: string;
 };
 
 const PlaceholdersAndVanishInput = forwardRef<
   HTMLInputElement,
   PlaceholdersAndVanishInputProps
->(({ placeholders, onChange, onSubmit }, ref) => {
+>(({ placeholders, onChange, onSubmit, value }, ref) => {
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
   const [isTyping, setIsTyping] = useState(false); 
+  const [internalValue, setInternalValue] = useState(value);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -49,7 +51,6 @@ const PlaceholdersAndVanishInput = forwardRef<
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const newDataRef = useRef<any[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState("");
   const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
@@ -59,6 +60,10 @@ const PlaceholdersAndVanishInput = forwardRef<
       ref.current = inputRef.current;
     }
   }, [ref]);
+
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
 
   const draw = useCallback(() => {
     if (!inputRef.current) return;
@@ -75,7 +80,7 @@ const PlaceholdersAndVanishInput = forwardRef<
     const fontSize = parseFloat(computedStyles.getPropertyValue("font-size"));
     ctx.font = `${fontSize * 2}px ${computedStyles.fontFamily}`;
     ctx.fillStyle = "#FFF";
-    ctx.fillText(value, 16, 40);
+    ctx.fillText(internalValue, 16, 40);
 
     const imageData = ctx.getImageData(0, 0, 800, 800);
     const pixelData = imageData.data;
@@ -110,11 +115,11 @@ const PlaceholdersAndVanishInput = forwardRef<
       r: 1,
       color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`,
     }));
-  }, [value]);
+  }, [internalValue]);
 
   useEffect(() => {
     draw();
-  }, [value, draw]);
+  }, [internalValue, draw]);
 
   const animate = (start: number) => {
     const animateFrame = (pos: number = 0) => {
@@ -153,7 +158,7 @@ const PlaceholdersAndVanishInput = forwardRef<
         if (newDataRef.current.length > 0) {
           animateFrame(pos - 8);
         } else {
-          setValue("");
+          setInternalValue("");
           setAnimating(false);
         }
       });
@@ -188,18 +193,18 @@ const PlaceholdersAndVanishInput = forwardRef<
   };
 
   useEffect(() => {
-    if (value) {
+    if (internalValue) {
       setIsTyping(true); 
     } else {
       setIsTyping(false); 
     }
-  }, [value]);
+  }, [internalValue]);
 
   return (
     <form
       className={cn(
         "w-full relative max-w-xl mx-auto bg-white dark:bg-zinc-800 h-12 rounded-full overflow-hidden shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),_0px_1px_0px_0px_rgba(25,28,33,0.02),_0px_0px_0px_1px_rgba(25,28,33,0.08)] transition duration-200",
-        value && "bg-gray-50"
+        internalValue && "bg-gray-50"
       )}
       onSubmit={handleSubmit}
     >
@@ -214,13 +219,13 @@ const PlaceholdersAndVanishInput = forwardRef<
         title="input"
         onChange={(e) => {
           if (!animating) {
-            setValue(e.target.value);
+            setInternalValue(e.target.value);
             onChange && onChange(e);
           }
         }}
         onKeyDown={handleKeyDown}
         ref={inputRef}
-        value={value}
+        value={internalValue}
         type="text"
         className={cn(
           "w-full relative text-sm sm:text-base z-50 border-none dark:text-white bg-transparent text-black h-full rounded-full focus:outline-none focus:ring-0 pl-4 sm:pl-10 pr-20",
@@ -229,7 +234,7 @@ const PlaceholdersAndVanishInput = forwardRef<
       />
       <button
         title="submit button"
-        disabled={!value}
+        disabled={!internalValue}
         type="submit"
         className="absolute right-2 top-1/2 z-50 -translate-y-1/2 h-8 w-8 rounded-full disabled:bg-gray-700 bg-black dark:bg-zinc-900 dark:disabled:bg-zinc-800 transition duration-200 flex items-center justify-center"
       >
@@ -253,7 +258,7 @@ const PlaceholdersAndVanishInput = forwardRef<
               strokeDashoffset: "50%",
             }}
             animate={{
-              strokeDashoffset: value ? 0 : "50%",
+              strokeDashoffset: internalValue ? 0 : "50%",
             }}
             transition={{
               duration: 0.3,
@@ -267,7 +272,7 @@ const PlaceholdersAndVanishInput = forwardRef<
 
       <div className="absolute inset-0 flex items-center rounded-full pointer-events-none">
         <AnimatePresence mode="wait">
-          {!value && !isTyping && ( 
+          {!internalValue && !isTyping && ( 
             <motion.p
               initial={{
                 y: 5,
