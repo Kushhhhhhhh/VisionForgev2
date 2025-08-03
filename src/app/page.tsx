@@ -246,17 +246,26 @@ export default function Home() {
                   sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-4">
-                  <span className="text-white font-medium">Prompt: {[
-                    "Cyberpunk cityscape",
-                    "Fantasy castle in clouds",
-                    "Portrait of an elven queen",
-                    "Futuristic spaceship",
-                    "Surreal landscape",
-                    "Cute anime character",
-                    "Hyperrealistic wildlife",
-                    "Steampunk machinery",
-                    "Abstract cosmic art"
-                  ][index % 9]}</span>
+                  <span className="text-white font-medium">
+                    Prompt: {[
+                      "Elephant standing in a calm lake",
+                      "Surreal giant ice cream machine",
+                      "Sushi-themed airplane in flight",
+                      "Ship shaped like a bunny",
+                      "Starbucks shop as a giant mug",
+                      "Thinker statue holding cotton candy",
+                      "Rabbit flying a strawberry plane",
+                      "Dancing Statue of Liberty",
+                      "Old man crafting jewelry",
+                      "Cat in a suit, smoking",
+                      "Lion in 3-piece suit in cabin",
+                      "Beautiful natural scenery",
+                      "Clock merged with waterfall",
+                      "Magician on flying chessboard",
+                      "Genie emerging from magic lamp",
+                      "Diamond-gold chess pieces with faces"
+                    ][index]}
+                  </span>
                 </div>
               </motion.div>
             ))}
