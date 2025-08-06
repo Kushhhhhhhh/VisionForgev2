@@ -6,27 +6,33 @@ import axios from "axios";
 import uploadImageToCloudinary from "@/lib/upload-to-cloud";
 
 export async function POST(request: NextRequest) {
-  console.log("API request received");
+  console.log("[Image Generation] API request received");
   try {
     const { userId } = getAuth(request);
     if (!userId) {
-      console.error("Unauthorized access attempt");
+      console.error("[Auth] Unauthorized access attempt");
       return NextResponse.json(
         { error: "Unauthorized. Please log in to proceed." },
         { status: 401 }
       );
     }
+    console.log(`[Auth] Authorized user: ${userId}`);
 
     // Parse request body
     const { prompt, aspectRatio }: { prompt: string; aspectRatio: string } = await request.json();
+    console.log(`[Request] Prompt: "${prompt}" | Aspect Ratio: ${aspectRatio}`);
 
     if (!prompt.trim()) {
-      console.error("Empty prompt received");
+      console.error("[Validation] Empty prompt received");
       return NextResponse.json(
         { error: "Prompt cannot be empty." },
         { status: 400 }
       );
     }
+
+    // Generate random seed (1 - 999999)
+    const seed = Math.floor(Math.random() * 999999) + 1;
+    console.log(`[Config] Generated random seed: ${seed}`);
 
     // Set dimensions based on aspect ratio
     let width = 800;
@@ -46,47 +52,52 @@ export async function POST(request: NextRequest) {
         height = 1024;
         break;
       default:
-        console.warn(`Unsupported aspect ratio: ${aspectRatio}. Using default 1:1.`);
+        console.warn(`[Config] Unsupported aspect ratio: ${aspectRatio}. Using default 1:1.`);
         break;
     }
+    console.log(`[Config] Image dimensions: ${width}x${height}`);
 
-    console.log("Calling Pollination AI for inference...");
+    console.log(`[Pollination AI] Generating image with seed: ${seed}...`);
     const response = await axios.get(
       `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`,
       {
         params: {
-          model: 'flux', // High-quality model
+          model: 'flux',
           width,
           height,
-          seed: 42, // Reproducible results
-          private: true, // Disable watermark and public visibility
-          enhance: true, // Enhance prompt for better results
+          seed, // Dynamic seed value
+          private: true,
+          enhance: true,
         },
-        responseType: 'arraybuffer', // Get image as binary data
+        responseType: 'arraybuffer',
       }
     );
+    console.log("[Pollination AI] Image generated successfully");
 
-    // Convert image buffer to base64 data URI
+    // Convert image buffer to base64
     const imageBase64 = Buffer.from(response.data).toString('base64');
     const dataUri = `data:image/jpeg;base64,${imageBase64}`;
 
     // Upload to Cloudinary
-    console.log("Uploading image to Cloudinary...");
+    console.log("[Cloudinary] Starting image upload...");
     const cloudinaryUrl = await uploadImageToCloudinary(dataUri, prompt);
+    console.log(`[Cloudinary] Image uploaded: ${cloudinaryUrl}`);
 
     // Save to MongoDB
+    console.log("[Database] Saving to MongoDB...");
     await connectToDB();
     const newPost = new Post({
       userId,
       imageUrl: cloudinaryUrl,
       prompt,
+      seed, // Storing seed for potential regeneration
     });
     await newPost.save();
+    console.log("[Database] Record saved successfully");
 
-    console.log("Image URL saved successfully:", cloudinaryUrl);
     return NextResponse.json({ url: cloudinaryUrl });
   } catch (error: any) {
-    console.error("Error in API route:", error.message || error);
+    console.error("[Error] Process failed:", error.message || error);
     return NextResponse.json(
       { error: "Failed to generate image. Please try again later." },
       { status: 500 }
