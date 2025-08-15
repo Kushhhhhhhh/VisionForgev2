@@ -2,7 +2,7 @@ export const navItems = [
   { href: "/about", label: "About" },
   { href: "/create", label: "Create" },
   { href: "/profile", label: "Profile" },
-  // { href: "/gallery", label: "Gallery"}
+  { href: "/gallery", label: "Gallery"}
 ];
 
 export const images = [
