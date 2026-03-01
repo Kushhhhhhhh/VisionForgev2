@@ -2,117 +2,83 @@ import { NextResponse, NextRequest } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/db";
 import Post from "@/model/postModel";
-import axios from "axios";
 import uploadImageToCloudinary from "@/lib/upload-to-cloud";
 
 export async function POST(request: NextRequest) {
-  console.log("[Image Generation] API request received");
   try {
     const { userId } = getAuth(request);
-    if (!userId) {
-      console.error("[Auth] Unauthorized access attempt");
-      return NextResponse.json(
-        { error: "Unauthorized. Please log in to proceed." },
-        { status: 401 }
-      );
-    }
-    console.log(`[Auth] Authorized user: ${userId}`);
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // Parse request body
     const { prompt, aspectRatio }: { prompt: string; aspectRatio: string } = await request.json();
-    console.log(`[Request] Prompt: "${prompt}" | Aspect Ratio: ${aspectRatio}`);
+    
+    // 1. Setup dimensions & seed
+    const seed = Math.floor(Math.random() * 2147483647); // Max seed from docs is 2147483647
+    let width = 1024, height = 1024;
 
-    if (!prompt.trim()) {
-      console.error("[Validation] Empty prompt received");
-      return NextResponse.json(
-        { error: "Prompt cannot be empty." },
-        { status: 400 }
-      );
+    if (aspectRatio === "16:9") { width = 1280; height = 720; }
+    else if (aspectRatio === "4:3") { width = 1024; height = 768; }
+
+    // 2. Construct URL based on docs: https://gen.pollinations.ai/image/{prompt}
+    const params = new URLSearchParams({
+      model: 'flux',         // Verified model ID from docs
+      width: width.toString(),
+      height: height.toString(),
+      seed: seed.toString(),
+      nologo: 'true',
+      private: 'true',
+      key: process.env.POLLINATIONS_API_KEY || "", // Using query param for key as per docs
+    });
+
+    const pollUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?${params.toString()}`;
+
+    console.log(`[POLLINATIONS] Requesting: ${pollUrl}`);
+
+    // 3. Perform Fetch
+    const response = await fetch(pollUrl, {
+      method: 'GET',
+      // We still include the header for safety, but the 'key' param above is more direct
+      headers: {
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_POLLINATIONS_API_KEY}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[POLLINATIONS ERROR] Status: ${response.status}`, errorData);
+      
+      // Map documentation error codes to user messages
+      if (response.status === 402) throw new Error("Insufficient pollen balance.");
+      if (response.status === 401) throw new Error("Invalid API Key.");
+      if (response.status === 429) throw new Error("Rate limit exceeded.");
+      
+      throw new Error(`Generation failed with status ${response.status}`);
     }
 
-    // Generate random seed (1 - 999999)
-    const seed = Math.floor(Math.random() * 999999) + 1;
-    console.log(`[Config] Generated random seed: ${seed}`);
-
-    // Set dimensions based on aspect ratio
-    let width = 800;
-    let height = 800;
-
-    switch (aspectRatio) {
-      case "1:1":
-        width = 800;
-        height = 800;
-        break;
-      case "16:9":
-        width = 1280;
-        height = 720;
-        break;
-      case "4:3":
-        width = 768;
-        height = 1024;
-        break;
-      default:
-        console.warn(`[Config] Unsupported aspect ratio: ${aspectRatio}. Using default 1:1.`);
-        break;
-    }
-    console.log(`[Config] Image dimensions: ${width}x${height}`);
-
-    console.log(`[Pollination AI] Generating image with seed: ${seed}...`);
-    const response = await axios.get(
-      `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`,
-      {
-        params: {
-          model: 'flux',
-          width,
-          height,
-          seed, // Dynamic seed value
-          private: true,
-          enhance: true,
-        },
-        responseType: 'arraybuffer',
-      }
-    );
-    console.log("[Pollination AI] Image generated successfully");
-
-    // Convert image buffer to base64
-    const imageBase64 = Buffer.from(response.data).toString('base64');
+    // 4. Handle Image Data (Returns image/jpeg as per docs)
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const imageBase64 = buffer.toString('base64');
     const dataUri = `data:image/jpeg;base64,${imageBase64}`;
 
-    // Upload to Cloudinary
-    console.log("[Cloudinary] Starting image upload...");
+    console.log("[CLOUDINARY] Uploading...");
     const cloudinaryUrl = await uploadImageToCloudinary(dataUri, prompt);
-    console.log(`[Cloudinary] Image uploaded: ${cloudinaryUrl}`);
 
-    // Save to MongoDB
-    console.log("[Database] Saving to MongoDB...");
     await connectToDB();
-    const newPost = new Post({
-      userId,
-      imageUrl: cloudinaryUrl,
-      prompt,
-      seed, // Storing seed for potential regeneration
-    });
+    const newPost = new Post({ userId, imageUrl: cloudinaryUrl, prompt, seed });
     await newPost.save();
-    console.log("[Database] Record saved successfully");
 
     return NextResponse.json({ url: cloudinaryUrl });
+
   } catch (error: any) {
-    console.error("[Error] Process failed:", error.message || error);
-    return NextResponse.json(
-      { error: "Failed to generate image. Please try again later." },
-      { status: 500 }
-    );
+    console.error("[ERROR] Process failed:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
   const { userId } = getAuth(request);
-  if (!userId) {
-    return NextResponse.json(
-      { error: "Unauthorized. Please log in to proceed." },
-      { status: 401 }
-    );
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(request.url);
   const postId = url.searchParams.get("id");
@@ -120,12 +86,7 @@ export async function GET(request: NextRequest) {
 
   if (postId) {
     const post = await Post.findById(postId);
-    if (!post) {
-      return NextResponse.json(
-        { error: "Post not found." },
-        { status: 404 }
-      );
-    }
+    if (!post) return NextResponse.json({ error: "Post not found." }, { status: 404 });
     return NextResponse.json(post);
   }
 
@@ -136,53 +97,22 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { userId: authUserId } = getAuth(request);
-    if (!authUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized. Please log in to proceed." },
-        { status: 401 }
-      );
-    }
+    if (!authUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const postId = searchParams.get("id");
-    console.log("Received postId:", postId);
 
-    if (!postId) {
-      return NextResponse.json(
-        { error: "Post ID is required." },
-        { status: 400 }
-      );
-    }
+    if (!postId) return NextResponse.json({ error: "Post ID required" }, { status: 400 });
 
     await connectToDB();
-
     const post = await Post.findById(postId);
-    console.log("Post found:", post);
 
-    if (!post) {
-      return NextResponse.json(
-        { error: "Post not found." },
-        { status: 404 }
-      );
-    }
-
-    if (post.userId.toString() !== authUserId) {
-      return NextResponse.json(
-        { error: "Unauthorized to delete this post." },
-        { status: 403 }
-      );
-    }
+    if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    if (post.userId.toString() !== authUserId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     await post.deleteOne();
-    return NextResponse.json(
-      { message: "Post deleted successfully." },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Deleted successfully" });
   } catch (error) {
-    console.error("Error in DELETE route:", error);
-    return NextResponse.json(
-      { error: "Failed to delete post. Please try again later." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

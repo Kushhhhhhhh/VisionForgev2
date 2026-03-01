@@ -12,7 +12,10 @@ import {
   RectangleHorizontal,
   RectangleVertical,
   Sparkles,
-  Wand2
+  Wand2,
+  Palette,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,7 +41,7 @@ export default function CreateForm() {
 
   useEffect(() => {
     if (imageUrl && imageContainerRef.current) {
-      imageContainerRef.current.scrollIntoView({ behavior: "smooth" });
+      imageContainerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [imageUrl]);
 
@@ -62,17 +65,19 @@ export default function CreateForm() {
         body: JSON.stringify({ prompt, aspectRatio }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate image");
+        throw new Error(data.error || "Failed to generate image");
       }
 
-      const data = await response.json();
       setImageUrl(data.url);
+      setPrompt("");
       toast.success("Image generated successfully!");
     } catch (error: any) {
       console.error("Error:", error);
       toast.error(error.message || "Something went wrong");
+      setError(error.message);
     } finally {
       setLoading(false);
       setTimeout(() => setIsGenerating(false), 1000);
@@ -89,7 +94,7 @@ export default function CreateForm() {
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `visionforge-${prompt.substring(0, 20).replace(/\s+/g, "-")}.jpg`;
+      link.download = `visionforge-${prompt.substring(0, 20).replace(/\s+/g, "-") || "creation"}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -102,209 +107,287 @@ export default function CreateForm() {
     }
   };
 
+  const aspectRatios = [
+    { value: "1:1", icon: Square, label: "Square", description: "Perfect for social media" },
+    { value: "16:9", icon: RectangleHorizontal, label: "Landscape", description: "Ideal for desktop wallpapers" },
+    { value: "4:3", icon: RectangleVertical, label: "Portrait", description: "Great for mobile & stories" },
+  ];
+
   return (
-    <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col xl:flex-row gap-12 xl:gap-24"
-      >
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+      <div className="absolute inset-0 bg-grid-slate-200 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none" />
       
-        <div className="w-full xl:w-[55%] space-y-8">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-center"
-          >
-            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-              Create AI Art
-            </h1>
-            <p className="text-xl text-gray-600">
-              Describe your vision and let our AI bring it to life
-            </p>
-          </motion.div>
-
-          <div className="space-y-8">
-            <PlaceholdersAndVanishInput
-              ref={inputRef}
-              placeholders={placeholders}
-              onChange={(e) => {
-                setPrompt(e.target.value);
-                setError("");
-              }}
-              onSubmit={handleSubmit}
-              value={prompt}
-            />
-
-            {error && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-sm text-center"
-              >
-                {error}
-              </motion.p>
-            )}
+      <main className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col lg:flex-row gap-8 lg:gap-12 xl:gap-16"
+        >
+          {/* Left Column - Input Section */}
+          <div className="w-full lg:w-1/2 space-y-8">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-medium">
+                <Sparkles className="w-4 h-4" />
+                <span>AI Image Generator</span>
+              </div>
+              
+              <h1 className="text-4xl md:text-5xl font-bold">
+                <span className="bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
+                  Bring Your Ideas
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  to Life with AI
+                </span>
+              </h1>
+              
+              <p className="text-lg text-slate-600 max-w-lg">
+                Transform your imagination into stunning visuals. Just describe what you want to see, and watch the magic happen.
+              </p>
+            </motion.div>
 
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
               className="space-y-6"
             >
-              <h3 className="text-xl font-semibold text-center text-gray-800">
-                Aspect Ratio
-              </h3>
-              <div className="flex flex-wrap justify-center gap-4">
-                {[
-                  { value: "1:1", icon: Square, label: "Square" },
-                  { value: "16:9", icon: RectangleHorizontal, label: "Wide" },
-                  { value: "3:4", icon: RectangleVertical, label: "Portrait" },
-                ].map((ratio) => (
-                  <Button
-                    key={ratio.value}
-                    variant={aspectRatio === ratio.value ? "default" : "outline"}
-                    className={`flex flex-col items-center gap-2 p-4 h-auto min-w-[100px] transition-all ${aspectRatio === ratio.value
-                        ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                        : "hover:bg-gray-100"
-                      }`}
-                    onClick={() => setAspectRatio(ratio.value as AspectRatio)}
-                    disabled={loading}
+              <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/50 p-6 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-indigo-600" />
+                    Your Prompt
+                  </label>
+                  <PlaceholdersAndVanishInput
+                    ref={inputRef}
+                    placeholders={placeholders}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      setError("");
+                    }}
+                    onSubmit={handleSubmit}
+                    value={prompt}
+                  />
+                </div>
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-500 text-sm flex items-center gap-2 bg-red-50 p-3 rounded-lg"
                   >
-                    <ratio.icon className="w-6 h-6" />
-                    <span className="text-sm">{ratio.label}</span>
-                    <span className="text-xs opacity-80">{ratio.value}</span>
-                  </Button>
-                ))}
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    {error}
+                  </motion.p>
+                )}
+
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-indigo-600" />
+                    Aspect Ratio
+                  </label>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {aspectRatios.map((ratio) => (
+                      <button
+                        key={ratio.value}
+                        onClick={() => setAspectRatio(ratio.value as AspectRatio)}
+                        disabled={loading}
+                        className={`group relative p-4 rounded-xl border-2 transition-all duration-200 ${
+                          aspectRatio === ratio.value
+                            ? "border-indigo-600 bg-indigo-50/50"
+                            : "border-slate-200 hover:border-indigo-300 hover:bg-white"
+                        } ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <div className="flex flex-col items-center text-center gap-2">
+                          <ratio.icon className={`w-6 h-6 ${
+                            aspectRatio === ratio.value ? "text-indigo-600" : "text-slate-500"
+                          }`} />
+                          <div>
+                            <div className={`font-medium ${
+                              aspectRatio === ratio.value ? "text-indigo-600" : "text-slate-700"
+                            }`}>
+                              {ratio.label}
+                            </div>
+                            <div className="text-xs text-slate-500">{ratio.value}</div>
+                          </div>
+                          {aspectRatio === ratio.value && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute top-2 right-2"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+                            </motion.div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading || !prompt.trim()}
+                  size="lg"
+                  className={`w-full py-7 text-lg font-semibold rounded-xl transition-all ${
+                    loading
+                      ? "bg-indigo-300 cursor-not-allowed"
+                      : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Creating your masterpiece...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-5 h-5 mr-3" />
+                      Generate Image
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-4 text-sm text-slate-500">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>HD Quality</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Fast Generation</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Commercial Use</span>
+                </div>
               </div>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="pt-6"
-            >
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || !prompt.trim()}
-                size="lg"
-                className={`w-full py-7 text-lg font-bold transition-all ${loading
-                    ? "bg-indigo-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                  }`}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6 mr-3" />
-                    Generate Image
-                  </>
-                )}
-              </Button>
-            </motion.div>
           </div>
-        </div>
 
-        {/* Right Panel - Preview */}
-        <div className="w-full xl:w-[45%] flex flex-col items-center gap-10">
-          <motion.h2
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-bold text-gray-900"
-          >
-            Your Creation
-          </motion.h2>
-
-          <div className="w-full flex justify-center px-4">
+          {/* Right Column - Preview Section */}
+          <div className="w-full lg:w-1/2 flex flex-col items-center">
             <motion.div
-              ref={imageContainerRef}
-              className={`relative rounded-xl overflow-hidden shadow-2xl w-[80vw] max-w-[500px] ${!imageUrl ? "bg-gray-100 border-2 border-dashed border-gray-300" : ""
-                }`}
-              style={{
-                aspectRatio: aspectRatio.replace(':', '/')
-              }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
+              transition={{ delay: 0.4 }}
+              className="w-full max-w-xl sticky top-8 space-y-6"
             >
-              <AnimatePresence>
-                {loading ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm"
-                  >
-                    <div className="relative">
-                      <Wand2 className="w-12 h-12 text-indigo-600 animate-pulse" />
-                    </div>
-                    <p className="mt-4 text-gray-700 font-medium">
-                      Crafting your masterpiece...
-                    </p>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              <div className="text-center lg:text-left space-y-2">
+                <h2 className="text-2xl font-semibold text-slate-800">Preview</h2>
+                <p className="text-slate-500">Your generated image will appear here</p>
+              </div>
 
-              {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt={`AI generated: ${prompt}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400 p-6 text-center">
-                  <ImageIcon className="w-16 h-16 mb-4" />
-                  <p className="text-lg">Your generated image will appear here</p>
-                  <p className="text-sm mt-2">
-                    Describe what you want to create and click "Generate"
-                  </p>
-                </div>
+              <motion.div
+                ref={imageContainerRef}
+                className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-100 to-white border border-white/50"
+                style={{
+                  aspectRatio: aspectRatio.replace(':', '/')
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  {isGenerating ? (
+                    <motion.div
+                      key="generating"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-10"
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 rounded-full bg-indigo-600/20 animate-ping" />
+                        <Wand2 className="relative w-12 h-12 text-indigo-600 animate-pulse" />
+                      </div>
+                      <motion.p
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="mt-4 text-slate-700 font-medium"
+                      >
+                        Crafting your vision...
+                      </motion.p>
+                      <motion.p
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-sm text-slate-500"
+                      >
+                        This may take a few seconds
+                      </motion.p>
+                    </motion.div>
+                  ) : null}
+
+                  {imageUrl ? (
+                    <motion.img
+                      key="image"
+                      initial={{ opacity: 0, scale: 1.1 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5 }}
+                      src={imageUrl}
+                      alt={`AI generated: ${prompt}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <motion.div
+                      key="placeholder"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute inset-0 flex flex-col items-center justify-center p-8"
+                    >
+                      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
+                        <ImageIcon className="w-12 h-12 text-indigo-400" />
+                      </div>
+                      <p className="text-slate-600 text-center text-lg font-medium">
+                        Ready to create something amazing
+                      </p>
+                      <p className="text-slate-400 text-center text-sm mt-2 max-w-xs">
+                        Enter your prompt above and watch the AI transform your words into art
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {imageUrl && !isGenerating && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="absolute bottom-4 right-4 flex gap-2"
+                  >
+                    <Button
+                      onClick={handleDownload}
+                      size="sm"
+                      className="bg-white/90 hover:bg-white text-indigo-600 backdrop-blur-sm border border-white/50"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </motion.div>
+                )}
+              </motion.div>
+
+              {imageUrl && !isGenerating && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-center gap-3 text-sm text-slate-500 bg-white/50 backdrop-blur-sm rounded-lg p-3"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Image generated successfully</span>
+                </motion.div>
               )}
             </motion.div>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="w-full max-w-md"
-          >
-            <Button
-              onClick={handleDownload}
-              disabled={!imageUrl || loading}
-              size="lg"
-              variant="outline"
-              className={`w-full py-6 text-lg font-bold border-2 ${!imageUrl
-                  ? "border-gray-300 text-gray-400 cursor-not-allowed"
-                  : "border-indigo-600 text-indigo-600 hover:bg-indigo-50"
-                }`}
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Download Image
-            </Button>
-          </motion.div>
-
-          {imageUrl && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center text-sm text-gray-500"
-            >
-              <p>Don't forget to save your creation!</p>
-              <p className="mt-1">Commercial use allowed</p>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </main>
+        </motion.div>
+      </main>
+    </div>
   );
 }
