@@ -36,7 +36,7 @@ const Header = () => {
       <div className="px-4 lg:px-8 h-16 flex items-center justify-between max-w-7xl mx-auto">
       
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-extrabold font-sans text-2xl md:text-3xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+          <span className="font-extrabold font-sans text-2xl md:text-3xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent p-1">
             VisionForge
           </span>
         </Link>

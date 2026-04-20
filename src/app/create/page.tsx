@@ -1,3 +1,4 @@
+// src/app/create/page.tsx
 import AnimatedBackground from "@/components/animated/AnimatedBackground";
 import CreateForm from "@/components/custom/CreateForm"
 import type { Metadata } from "next";
@@ -12,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function CreatePage() {
   return (
-    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <main className="min-h-screen py-12 sm:px-6 lg:px-8 relative overflow-hidden">
      <AnimatedBackground />
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="p-6 md:p-8 relative z-10">
           <CreateForm />
         </div>
