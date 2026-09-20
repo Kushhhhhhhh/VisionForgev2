@@ -1,77 +1,39 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/db";
+import Job from "@/model/jobModel";
 import Post from "@/model/postModel";
-import uploadImageToCloudinary from "@/lib/upload-to-cloud";
+import { addImageJob } from "@/lib/queue";
+import { checkRateLimit } from "@/lib/rateLimiter";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request);
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { prompt, aspectRatio }: { prompt: string; aspectRatio: string } = await request.json();
-    
-    // 1. Setup dimensions & seed
-    const seed = Math.floor(Math.random() * 2147483647); // Max seed from docs is 2147483647
-    let width = 1024, height = 1024;
-
-    if (aspectRatio === "16:9") { width = 1280; height = 720; }
-    else if (aspectRatio === "4:3") { width = 1024; height = 768; }
-
-    // 2. Construct URL based on docs: https://gen.pollinations.ai/image/{prompt}
-    const params = new URLSearchParams({
-      model: 'flux',         // Verified model ID from docs
-      width: width.toString(),
-      height: height.toString(),
-      seed: seed.toString(),
-      nologo: 'true',
-      private: 'true',
-      key: process.env.POLLINATIONS_API_KEY || "", // Using query param for key as per docs
-    });
-
-    const pollUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?${params.toString()}`;
-
-    console.log(`[POLLINATIONS] Requesting: ${pollUrl}`);
-
-    // 3. Perform Fetch
-    const response = await fetch(pollUrl, {
-      method: 'GET',
-      // We still include the header for safety, but the 'key' param above is more direct
-      headers: {
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_POLLINATIONS_API_KEY}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`[POLLINATIONS ERROR] Status: ${response.status}`, errorData);
-      
-      // Map documentation error codes to user messages
-      if (response.status === 402) throw new Error("Insufficient pollen balance.");
-      if (response.status === 401) throw new Error("Invalid API Key.");
-      if (response.status === 429) throw new Error("Rate limit exceeded.");
-      
-      throw new Error(`Generation failed with status ${response.status}`);
+    const { allowed, retryAfterMs } = await checkRateLimit(userId);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Try again in ${Math.ceil(retryAfterMs / 1000)}s.` },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
+        }
+      );
     }
 
-    // 4. Handle Image Data (Returns image/jpeg as per docs)
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const imageBase64 = buffer.toString('base64');
-    const dataUri = `data:image/jpeg;base64,${imageBase64}`;
-
-    console.log("[CLOUDINARY] Uploading...");
-    const cloudinaryUrl = await uploadImageToCloudinary(dataUri, prompt);
+    const { prompt, aspectRatio } = await request.json();
+    if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
     await connectToDB();
-    const newPost = new Post({ userId, imageUrl: cloudinaryUrl, prompt, seed });
-    await newPost.save();
 
-    return NextResponse.json({ url: cloudinaryUrl });
+    const jobId = uuidv4();
+    await Job.create({ jobId, userId, prompt, aspectRatio: aspectRatio || "1:1" });
+    await addImageJob({ jobId, userId, prompt, aspectRatio: aspectRatio || "1:1" });
 
+    return NextResponse.json({ jobId }, { status: 202 });
   } catch (error: any) {
-    console.error("[ERROR] Process failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

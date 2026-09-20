@@ -14,38 +14,94 @@ import {
   Sparkles,
   Wand2,
   CheckCircle2,
-  Layers
+  Layers,
+  RefreshCw,
+  Palmtree
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useJobPoller } from "@/lib/useJobPoller";
 
-type AspectRatio = "1:1" | "16:9" | "4:3";
+type AspectRatio = "1:1" | "16:9" | "9:16";
+
+const FUNNY_GIVEUP_MESSAGES = [
+  "🏖️ Our art director is on vacation sipping coconuts. Try again a bit later!",
+  "😴 The AI dozed off mid-brushstroke. It needs a nap — come back soon!",
+  "☕ The render elves went for a coffee break and forgot to come back.",
+  "🛸 Aliens borrowed our servers for free art. We're negotiating their return.",
+  "🎨 Even Picasso had off days. The muses are quiet right now — try again soon!",
+];
 
 export default function CreateForm() {
-  const inputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
   const [prompt, setPrompt] = useState("");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
+  const [jobId, setJobId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [error, setError] = useState("");
+  const [funnyError, setFunnyError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // The prompt that produced the current/last attempt — used by Regenerate & Retry
+  const lastPromptRef = useRef("");
+  // Consecutive failures; after 5 we stop offering retry and show a funny message
+  const failCountRef = useRef(0);
+
+  const { status: jobStatus, imageUrl: polledUrl, error: jobError } = useJobPoller(jobId);
+
+  const registerFailure = (msg: string) => {
+    failCountRef.current += 1;
+    setLoading(false);
+    setIsGenerating(false);
+    setJobId(null);
+    if (failCountRef.current >= 5) {
+      setFunnyError(
+        FUNNY_GIVEUP_MESSAGES[Math.floor(Math.random() * FUNNY_GIVEUP_MESSAGES.length)]
+      );
+      setError("");
+      toast.error("Still no luck — take a little break and try later!");
+    } else {
+      setError(msg);
+      toast.error(msg);
+    }
+  };
+
+  // Sync poller results into local display state
+  useEffect(() => {
+    if (jobStatus === "completed" && polledUrl) {
+      failCountRef.current = 0;
+      setImageUrl(polledUrl);
+      setLoading(false);
+      setIsGenerating(false);
+      setFunnyError(null);
+      setPrompt("");
+      setJobId(null);
+      toast.success("Masterpiece ready!");
+    } else if (jobStatus === "failed") {
+      registerFailure(jobError ?? "Generation failed");
+    }
+  }, [jobStatus, polledUrl, jobError]);
 
   const aspectRatios = [
     { value: "1:1", icon: Square, label: "Square" },
     { value: "16:9", icon: RectangleHorizontal, label: "Landscape" },
-    { value: "4:3", icon: RectangleVertical, label: "Portrait" },
+    { value: "9:16", icon: RectangleVertical, label: "Portrait" },
   ];
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!prompt.trim()) {
+  const startGeneration = async (promptText: string) => {
+    const clean = promptText.trim();
+    if (!clean) {
       setError("Please describe what you want to create");
       return;
     }
 
+    lastPromptRef.current = clean;
     setError("");
+    setFunnyError(null);
+    setImageUrl(null);
+    setJobId(null);
     setLoading(true);
     setIsGenerating(true);
 
@@ -53,22 +109,33 @@ export default function CreateForm() {
       const response = await fetch("/api/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, aspectRatio }),
+        body: JSON.stringify({ prompt: clean, aspectRatio }),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to generate");
 
-      setImageUrl(data.url);
-      setPrompt("");
-      toast.success("Masterpiece ready!");
-    } catch (error: any) {
-      toast.error(error.message || "Something went wrong");
-      setError(error.message);
-    } finally {
-      setLoading(false);
-      setTimeout(() => setIsGenerating(false), 800);
+      // Hand off to the poller — loading stays true until job completes
+      setJobId(data.jobId);
+    } catch (err: any) {
+      registerFailure(err.message || "Something went wrong");
     }
+  };
+
+  // Fresh submit from the form — resets the failure streak
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    failCountRef.current = 0;
+    startGeneration(prompt);
+  };
+
+  // Retry a failed attempt — keeps counting toward the 5-fail cutoff
+  const handleRetry = () => startGeneration(lastPromptRef.current);
+
+  // Regenerate a fresh variation of the last successful prompt
+  const handleRegenerate = () => {
+    failCountRef.current = 0;
+    startGeneration(lastPromptRef.current);
   };
 
   const handleDownload = async () => {
@@ -126,9 +193,22 @@ export default function CreateForm() {
                 value={prompt}
               />
               {error && (
-                <p className="text-xs text-red-500 mt-2 ml-1 flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-red-500" /> {error}
-                </p>
+                <div className="mt-2 ml-1 space-y-2">
+                  <p className="text-xs text-red-500 flex items-center gap-1">
+                    <span className="w-1 h-1 rounded-full bg-red-500" /> {error}
+                  </p>
+                  {!loading && lastPromptRef.current && (
+                    <Button
+                      onClick={handleRetry}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-2" />
+                      Try Again
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -205,7 +285,9 @@ export default function CreateForm() {
                     <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
                     <Wand2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-indigo-600" />
                   </div>
-                  <p className="text-sm font-bold text-slate-800 animate-pulse">Analyzing Prompt...</p>
+                  <p className="text-sm font-bold text-slate-800 animate-pulse">
+                    {jobStatus === "processing" ? "Generating image..." : "Queuing job..."}
+                  </p>
                 </motion.div>
               ) : null}
 
@@ -218,13 +300,45 @@ export default function CreateForm() {
                     alt="AI Generated"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
+                  {/* Always visible on mobile (no hover on touch), hover-reveal on desktop */}
+                  <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 sm:translate-y-2 sm:group-hover:translate-y-0">
+                    <Button
+                      onClick={handleRegenerate}
+                      variant="secondary"
+                      className="bg-white/90 hover:bg-white text-slate-900 rounded-xl shadow-md"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Regenerate
+                    </Button>
+                    <Button
+                      onClick={handleDownload}
+                      className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : funnyError ? (
+                <motion.div
+                  key="funny"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center h-full p-12 text-center"
+                >
+                  <div className="w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center shadow-inner mb-6">
+                    <Palmtree className="w-10 h-10 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-2">Taking a Breather</h3>
+                  <p className="text-sm text-slate-500 max-w-[280px] mb-6">{funnyError}</p>
                   <Button
-                    onClick={handleDownload}
-                    className="absolute bottom-6 right-6 bg-white hover:bg-white/90 text-slate-900 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0"
+                    onClick={handleRetry}
+                    variant="outline"
+                    className="rounded-xl"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Save Image
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Give it Another Shot
                   </Button>
                 </motion.div>
               ) : (

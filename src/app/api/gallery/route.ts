@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getAuth, currentUser } from "@clerk/nextjs/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDB } from "@/lib/db";
 import Post, { IPost } from "@/model/postModel";
 import mongoose from "mongoose";
@@ -9,22 +9,30 @@ export async function GET(request: NextRequest) {
     await connectToDB();
 
     const { searchParams } = new URL(request.url);
-    const skip = parseInt(searchParams.get("skip") || "0");
-    const limit = parseInt(searchParams.get("limit") || "8");
+    const cursor = searchParams.get("cursor");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "8"), 50);
 
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
+    const query = cursor && mongoose.Types.ObjectId.isValid(cursor)
+      ? { _id: { $lt: new mongoose.Types.ObjectId(cursor) } }
+      : {};
+
+    // Fetch one extra to determine if another page exists
+    const posts = await Post.find(query)
+      .sort({ _id: -1 })
+      .limit(limit + 1)
       .select("-userId")
       .lean<IPost[]>();
 
-    const stringifiedPosts = posts.map(post => ({
+    const hasMore = posts.length > limit;
+    const page = posts.slice(0, limit).map(post => ({
       ...post,
       _id: post._id.toString(),
     }));
 
-    return NextResponse.json(stringifiedPosts);
+    return NextResponse.json({
+      posts: page,
+      nextCursor: hasMore ? page[page.length - 1]._id : null,
+    });
   } catch (error) {
     console.error("Error in gallery GET route:", error);
     return NextResponse.json(
@@ -37,26 +45,14 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { userId } = getAuth(request);
-
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await currentUser();
-    if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const email = user.primaryEmailAddress?.emailAddress;
-
-  if (email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
-    // Check admin
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "fullstack.kush@gmail.com";
-    if (email !== adminEmail) {
-      return NextResponse.json({ error: "Unauthorized to delete this post." }, { status: 403 });
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    if (user.privateMetadata?.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

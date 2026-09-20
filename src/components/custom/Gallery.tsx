@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { Loader2, Trash2 } from "lucide-react";
@@ -22,27 +22,40 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const isFetchingRef = useRef(false);
 
-  const isAdmin =
-    user?.primaryEmailAddress?.emailAddress ===
-    process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+  const isAdmin = user?.publicMetadata?.isAdmin === true;
 
-  const fetchPosts = async (skip = 0, append = false) => {
+  const fetchPosts = async (cursor: string | null = null, append = false) => {
+    // Guard against concurrent fetches (observer can fire twice before state updates)
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
-      const response = await fetch(`/api/gallery?skip=${skip}&limit=${PAGE_LIMIT}`);
+      const params = new URLSearchParams({ limit: String(PAGE_LIMIT) });
+      if (cursor) params.set("cursor", cursor);
+
+      const response = await fetch(`/api/gallery?${params}`);
       if (!response.ok) throw new Error("Failed to fetch posts");
 
-      const data: GalleryItem[] = await response.json();
+      const data: { posts: GalleryItem[]; nextCursor: string | null } = await response.json();
 
-      if (data.length < PAGE_LIMIT) setHasMore(false);
-      setPosts(prev => (append ? [...prev, ...data] : data));
+      setNextCursor(data.nextCursor);
+      setHasMore(data.nextCursor !== null);
+      setPosts(prev => {
+        if (!append) return data.posts;
+        // Dedupe by _id so a repeated page never produces duplicate React keys
+        const seen = new Set(prev.map(p => p._id));
+        return [...prev, ...data.posts.filter(p => !seen.has(p._id))];
+      });
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast.error("Failed to load gallery");
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -56,8 +69,9 @@ export default function Gallery() {
       const observer = new IntersectionObserver(
         entries => {
           if (entries[0].isIntersecting) {
+            observer.disconnect(); // stop further triggers until the ref re-attaches with a new cursor
             setLoadingMore(true);
-            fetchPosts(posts.length, true);
+            fetchPosts(nextCursor, true);
           }
         },
         { threshold: 1 }
@@ -65,7 +79,7 @@ export default function Gallery() {
       if (node) observer.observe(node);
       return () => observer.disconnect();
     },
-    [loadingMore, posts, loading, hasMore]
+    [loadingMore, loading, hasMore, nextCursor]
   );
 
   const handleDelete = async (postId: string) => {
@@ -156,43 +170,38 @@ export default function Gallery() {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-4 [column-fill:_balance]">
             {posts.map(post => (
               <motion.div
                 key={post._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
-                className="relative group rounded-lg overflow-hidden shadow-lg bg-white"
+                className="relative group mb-4 break-inside-avoid rounded-xl overflow-hidden shadow-md bg-gray-100"
               >
-                <motion.img
+                <img
                   src={post.imageUrl}
                   loading="lazy"
-                  alt={post.prompt}
-                  className="w-full h-96 object-cover"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.4 }}
+                  alt="AI generated artwork"
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-                <div className="p-4 flex justify-between items-center">
-                  <p className="text-sm text-gray-600 line-clamp-2">{post.prompt}</p>
 
-                  {isAdmin && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDelete(post._id)}
-                      disabled={deletingId === post._id}
-                      className="ml-2"
-                    >
-                      {deletingId === post._id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
+                {isAdmin && (
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => handleDelete(post._id)}
+                    disabled={deletingId === post._id}
+                    className="absolute top-2 right-2 h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
+                    aria-label="Delete post"
+                  >
+                    {deletingId === post._id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
               </motion.div>
             ))}
           </div>

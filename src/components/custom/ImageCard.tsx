@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import { Download, Trash2, Loader2, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,7 +18,6 @@ interface ImageCardProps {
 }
 
 export default function ImageCard({ image, onDelete, isDeleting = false }: ImageCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
   const handleDownload = async () => {
@@ -75,13 +73,9 @@ export default function ImageCard({ image, onDelete, isDeleting = false }: Image
   }
 
   return (
-    <Card
-      className="overflow-hidden relative group transition-all hover:shadow-lg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Card className="overflow-hidden relative group transition-all hover:shadow-lg">
       <CardHeader className="p-0 relative">
-        <div className="relative w-full aspect-[4/3] sm:aspect-[1/1]">
+        <div className="relative w-full aspect-[4/3] sm:aspect-square">
           <img
             src={image.imageUrl || "/placeholder.svg"}
             alt={image.prompt}
@@ -89,60 +83,51 @@ export default function ImageCard({ image, onDelete, isDeleting = false }: Image
             loading="lazy"
           />
 
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/80 to-black/70 flex items-end p-3 sm:p-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="w-full flex flex-col justify-between sm:items-end space-y-2 sm:space-y-0 sm:space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:text-white mb-4 hover:bg-white/10 w-full sm:w-auto"
-                    onClick={() => window.open(image.imageUrl, "_blank")}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    View Full
-                  </Button>
+          {/* Action bar: always visible on mobile (no hover on touch), hover-reveal on desktop */}
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900"
+              onClick={() => window.open(image.imageUrl, "_blank")}
+              aria-label="View full image"
+              title="View full"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Button>
 
-                  <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0 w-full sm:w-auto">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleDownload}
-                      disabled={isDownloading}
-                      className="w-full sm:w-auto"
-                    >
-                      {isDownloading ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 mr-2" />
-                      )}
-                      Download
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="w-full sm:w-auto"
-                    >
-                      {isDeleting ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4 mr-2" />
-                      )}
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              aria-label="Download image"
+              title="Download"
+            >
+              {isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="icon"
+              className="h-9 w-9"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              aria-label="Delete image"
+              title="Delete"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 

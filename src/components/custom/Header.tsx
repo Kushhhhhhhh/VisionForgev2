@@ -29,8 +29,6 @@ const Header = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  if (!isLoaded) return null;
-
   return (
     <header className="fixed top-0 left-0 w-full z-[1000] bg-white">
       <div className="px-4 lg:px-8 h-16 flex items-center justify-between max-w-7xl mx-auto">

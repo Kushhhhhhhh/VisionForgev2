@@ -18,6 +18,9 @@ const postSchema = new Schema<IPost>(
   { timestamps: true }
 );
 
+postSchema.index({ userId: 1, createdAt: -1 }); // profile page: user's posts sorted by newest
+postSchema.index({ createdAt: -1 });             // gallery sort (also covers cursor pagination via _id)
+
 const Post = models.Post || model<IPost>("Post", postSchema);
 
 export default Post;
