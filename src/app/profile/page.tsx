@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import ProfileHeader from "@/components/custom/ProfileHeader"
 import ImageGrid from "@/components/custom/ImageGrid"
+import MotionProvider from "@/components/custom/MotionProvider"
 
 export const metadata: Metadata = {
   title: "Your AI Creations | Profile",
@@ -12,7 +13,9 @@ export default function ProfilePage() {
     <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <ProfileHeader />
-        <ImageGrid />
+        <MotionProvider>
+          <ImageGrid />
+        </MotionProvider>
       </div>
     </main>
   )

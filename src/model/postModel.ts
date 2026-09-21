@@ -5,6 +5,8 @@ export interface IPost extends Document {
   userId: string;
   imageUrl: string;
   prompt: string;
+  width?: number;
+  height?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +16,8 @@ const postSchema = new Schema<IPost>(
     userId: { type: String, required: true },
     imageUrl: { type: String, required: true },
     prompt: { type: String, required: true },
+    width: { type: Number },
+    height: { type: Number },
   },
   { timestamps: true }
 );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as m from "framer-motion/m";
 import PlaceholdersAndVanishInput from "@/components/ui/placeholders-and-vanish-input";
 import { placeholders } from "@/data/data";
 import {
@@ -159,14 +160,14 @@ export default function CreateForm() {
     <div className="w-full max-w-7xl mx-auto">
       {/* Subtle Header */}
       <div className="flex flex-col items-center mb-10 text-center space-y-2">
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 text-xs font-bold tracking-widest uppercase"
         >
           <Sparkles className="w-3 h-3" />
           AI Generation Studio
-        </motion.div>
+        </m.div>
         <h2 className="text-xl sm:text-3xl font-bold sm:tracking-tight text-slate-900">
           What are we creating today?
         </h2>
@@ -257,11 +258,11 @@ export default function CreateForm() {
           
           {/* Subtle Trust Badges */}
           <div className="flex items-center justify-between px-4 py-2 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">HD Quality</span>
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">HD Quality</span>
             <div className="w-1 h-1 rounded-full bg-slate-300" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Fast Process</span>
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Fast Process</span>
             <div className="w-1 h-1 rounded-full bg-slate-300" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Commercial Ready</span>
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Commercial Ready</span>
           </div>
         </div>
 
@@ -274,7 +275,7 @@ export default function CreateForm() {
           >
             <AnimatePresence mode="wait">
               {isGenerating ? (
-                <motion.div
+                <m.div
                   key="loading"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -288,21 +289,21 @@ export default function CreateForm() {
                   <p className="text-sm font-bold text-slate-800 animate-pulse">
                     {jobStatus === "processing" ? "Generating image..." : "Queuing job..."}
                   </p>
-                </motion.div>
+                </m.div>
               ) : null}
 
               {imageUrl ? (
-                <motion.div key="image" className="relative w-full h-full">
-                  <motion.img
+                <m.div key="image" className="relative w-full h-full">
+                  <m.img
                     initial={{ scale: 1.05, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     src={imageUrl}
                     alt="AI Generated"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
-                  {/* Always visible on mobile (no hover on touch), hover-reveal on desktop */}
-                  <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300 sm:translate-y-2 sm:group-hover:translate-y-0">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  {/* Always visible on every device — no hover required to discover these actions */}
+                  <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 flex gap-2">
                     <Button
                       onClick={handleRegenerate}
                       variant="secondary"
@@ -319,9 +320,9 @@ export default function CreateForm() {
                       Save
                     </Button>
                   </div>
-                </motion.div>
+                </m.div>
               ) : funnyError ? (
-                <motion.div
+                <m.div
                   key="funny"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -340,9 +341,9 @@ export default function CreateForm() {
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Give it Another Shot
                   </Button>
-                </motion.div>
+                </m.div>
               ) : (
-                <motion.div
+                <m.div
                   key="empty"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -355,20 +356,20 @@ export default function CreateForm() {
                   <p className="text-sm text-slate-500 max-w-[240px]">
                     Your creation will materialize here in stunning high definition.
                   </p>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </div>
           
           {imageUrl && !isGenerating && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-600 uppercase tracking-widest"
             >
               <CheckCircle2 className="w-3 h-3" />
               Generation Complete
-            </motion.div>
+            </m.div>
           )}
         </div>
       </div>

@@ -50,27 +50,30 @@ const Header = () => {
             </Link>
           ))}
 
-          <SignedOut>
-            <SignInButton>
-              <Button
-                variant="outline"
-                className="border-purple-600 text-purple-600 hover:bg-purple-50"
-              >
-                Sign In
-              </Button>
-            </SignInButton>
-          </SignedOut>
+          {/* Reserved size: Clerk loads after first paint, and without this the links shift left when it appears */}
+          <div className="flex h-10 min-w-[92px] items-center justify-end">
+            <SignedOut>
+              <SignInButton>
+                <Button
+                  variant="outline"
+                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                >
+                  Sign In
+                </Button>
+              </SignInButton>
+            </SignedOut>
 
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonAvatarBox:
-                    "h-9 w-9 hover:border-2 hover:border-purple-600 rounded-full transition-all",
-                },
-              }}
-            />
-          </SignedIn>
+            <SignedIn>
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox:
+                      "h-9 w-9 hover:border-2 hover:border-purple-600 rounded-full transition-all",
+                  },
+                }}
+              />
+            </SignedIn>
+          </div>
         </nav>
 
         <div className="md:hidden">

@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs'
 import { Inter } from "next/font/google";
 import Header from '@/components/custom/Header'
 import Footer from '@/components/custom/Footer'
 
-const inter = Inter({ subsets: ['latin'] })
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   title: "VisionForge - Free Image Generation, AI Image Creation, Stunning Visuals",
@@ -33,7 +22,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body
-          className={`${inter.className} ${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${inter.className} antialiased`}
         >
           <Header />
           {children}

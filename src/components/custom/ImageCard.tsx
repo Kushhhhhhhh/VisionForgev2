@@ -12,6 +12,8 @@ interface ImageCardProps {
     imageUrl: string
     prompt: string
     createdAt?: string
+    width?: number
+    height?: number
   }
   onDelete: (id: string) => Promise<void>
   isDeleting?: boolean
@@ -73,18 +75,21 @@ export default function ImageCard({ image, onDelete, isDeleting = false }: Image
   }
 
   return (
-    <Card className="overflow-hidden relative group transition-all hover:shadow-lg">
+    <Card className="overflow-hidden relative transition-shadow hover:shadow-lg">
       <CardHeader className="p-0 relative">
-        <div className="relative w-full aspect-[4/3] sm:aspect-square">
+        <div className="relative w-full">
           <img
             src={image.imageUrl || "/placeholder.svg"}
             alt={image.prompt}
-            className="w-full h-full object-cover transition-transform duration-300"
+            width={image.width}
+            height={image.height}
+            style={image.width && image.height ? { aspectRatio: `${image.width} / ${image.height}` } : undefined}
+            className="w-full h-auto object-cover block"
             loading="lazy"
           />
 
-          {/* Action bar: always visible on mobile (no hover on touch), hover-reveal on desktop */}
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          {/* Action bar: always visible on every device — no hover required to discover these actions */}
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
             <Button
               variant="secondary"
               size="icon"

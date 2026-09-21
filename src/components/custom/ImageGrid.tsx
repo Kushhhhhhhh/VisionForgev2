@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as m from "framer-motion/m";
 import ImageCard from "./ImageCard";
+import MasonryGrid from "./MasonryGrid";
 import { Loader2, ImageOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -89,7 +91,7 @@ export default function ImageGrid() {
 
   if (images.length === 0 && !loading) {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -100,7 +102,7 @@ export default function ImageGrid() {
         <Button asChild>
           <a href="/create">Generate Your First Image</a>
         </Button>
-      </motion.div>
+      </m.div>
     );
   }
 
@@ -108,7 +110,7 @@ export default function ImageGrid() {
     <>
       <AnimatePresence>
         {loading && images.length > 0 && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -116,36 +118,31 @@ export default function ImageGrid() {
           >
             <Loader2 className="animate-spin w-4 h-4" />
             <span className="text-sm">Updating gallery...</span>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-4 sm:px-6 lg:px-8"
-      >
-        <AnimatePresence>
-          {images.map((image) => (
-            <motion.div
-              key={image._id}
-              layout
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <MasonryGrid
+          items={images}
+          columns={{ base: 1, sm: 2, lg: 3 }}
+          gapClassName="gap-4 md:gap-6"
+          renderItem={(image) => (
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="w-full"
             >
               <ImageCard
                 image={image}
                 onDelete={handleDelete}
                 isDeleting={deletingId === image._id}
               />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+            </m.div>
+          )}
+        />
+      </div>
     </>
   );
 }

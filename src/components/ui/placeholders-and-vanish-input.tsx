@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as m from "framer-motion/m";
 import { useCallback, useEffect, useRef, useState, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -238,7 +239,7 @@ const PlaceholdersAndVanishInput = forwardRef<
         type="submit"
         className="absolute right-2 top-1/2 z-50 -translate-y-1/2 h-8 w-8 rounded-full disabled:bg-gray-700 bg-black dark:bg-zinc-900 dark:disabled:bg-zinc-800 transition duration-200 flex items-center justify-center"
       >
-        <motion.svg
+        <m.svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
           height="24"
@@ -251,7 +252,7 @@ const PlaceholdersAndVanishInput = forwardRef<
           className="text-gray-300 h-4 w-4"
         >
           <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-          <motion.path
+          <m.path
             d="M5 12l14 0"
             initial={{
               strokeDasharray: "50%",
@@ -267,13 +268,13 @@ const PlaceholdersAndVanishInput = forwardRef<
           />
           <path d="M13 18l6 -6" />
           <path d="M13 6l6 6" />
-        </motion.svg>
+        </m.svg>
       </button>
 
       <div className="absolute inset-0 flex items-center rounded-full pointer-events-none">
         <AnimatePresence mode="wait">
           {!internalValue && !isTyping && ( 
-            <motion.p
+            <m.p
               initial={{
                 y: 5,
                 opacity: 0,
@@ -294,7 +295,7 @@ const PlaceholdersAndVanishInput = forwardRef<
               className="dark:text-zinc-500 text-sm sm:text-base font-normal text-neutral-500 pl-4 sm:pl-12 text-left w-[calc(100%-2rem)] truncate"
             >
               {placeholders[currentPlaceholder]}
-            </motion.p>
+            </m.p>
           )}
         </AnimatePresence>
       </div>

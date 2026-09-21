@@ -22,7 +22,7 @@ const Footer = () => {
 
           {/* Navigation */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
               Navigate
             </h3>
             <ul className="flex flex-col gap-2">
@@ -43,11 +43,11 @@ const Footer = () => {
 
         {/* Bottom bar */}
         <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500">
             © {new Date().getFullYear()} VisionForge. All rights reserved.
           </p>
-          <p className="text-xs text-gray-400">
-            Free to use · No watermarks · No sign-up required to browse
+          <p className="text-xs text-gray-500">
+            Free to use · No watermarks · No credit card required
           </p>
         </div>
 

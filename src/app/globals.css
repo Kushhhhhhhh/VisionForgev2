@@ -70,3 +70,63 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Compositor-only animations (transform + opacity) — no JS on the main thread. */
+@keyframes float-path {
+  0% {
+    transform: translate3d(var(--x1), var(--y1), 0);
+  }
+  50% {
+    transform: translate3d(var(--x2), var(--y2), 0);
+  }
+  100% {
+    transform: translate3d(var(--x3), var(--y3), 0);
+  }
+}
+
+@keyframes float-fade {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  33.33%,
+  66.67% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+.floating-path {
+  animation-name: float-path;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.floating-fade {
+  animation-name: float-fade;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+.bobbing {
+  animation: float-bob 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bobbing {
+    animation: none;
+  }
+}

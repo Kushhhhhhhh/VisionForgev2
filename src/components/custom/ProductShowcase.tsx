@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { Marquee } from "@/components/ui/marquee"
 import { cn } from "@/lib/utils"
 import { images } from "@/data/data"
@@ -12,9 +13,12 @@ const ImageCard = ({ src }: { src: string }) => {
         "relative w-64 h-40 cursor-pointer overflow-hidden",
       )}
     >
-      <img
+      <Image
         src={src}
         alt="AI-generated visual"
+        width={256}
+        height={160}
+        sizes="256px"
         className="h-full w-full object-cover rounded-lg"
       />
     </div>

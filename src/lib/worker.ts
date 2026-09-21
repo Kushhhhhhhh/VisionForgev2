@@ -3,7 +3,7 @@ import { redisConnection } from "./redisConnection";
 import { connectToDB } from "./db";
 import JobModel from "@/model/jobModel";
 import Post from "@/model/postModel";
-import uploadImageToCloudinary from "./upload-to-cloud";
+import uploadImageToCloudinary, { type UploadedImage } from "./upload-to-cloud";
 import { withRetry } from "./utils";
 import type { ImageJobData } from "./queue";
 
@@ -17,13 +17,13 @@ async function main() {
 
       await JobModel.findOneAndUpdate({ jobId }, { status: "processing", $inc: { attempts: 1 } });
 
-      const imageUrl = await withRetry(
+      const { url: imageUrl, width, height } = await withRetry(
         () => generateImage(jobId, prompt, aspectRatio),
         { maxAttempts: 3, baseDelayMs: 1500, label: `job:${jobId}` }
       );
 
       await JobModel.findOneAndUpdate({ jobId }, { status: "completed", imageUrl });
-      await Post.create({ userId, imageUrl, prompt });
+      await Post.create({ userId, imageUrl, prompt, width, height });
     },
     {
       connection: redisConnection,
@@ -59,7 +59,7 @@ main().catch((err) => {
   process.exit(1);
 });
 
-async function generateImage(jobId: string, prompt: string, aspectRatio: string): Promise<string> {
+async function generateImage(jobId: string, prompt: string, aspectRatio: string): Promise<UploadedImage> {
   const seed = Math.floor(Math.random() * 2147483647);
   let width = 1024, height = 1024;
   if (aspectRatio === "16:9") { width = 1280; height = 720; }
