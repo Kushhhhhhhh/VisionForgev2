@@ -1,10 +1,9 @@
-import { Worker, Job } from "bullmq";
+import { Worker, Job, UnrecoverableError } from "bullmq";
 import { redisConnection } from "./redisConnection";
 import { connectToDB } from "./db";
 import JobModel from "@/model/jobModel";
 import Post from "@/model/postModel";
 import uploadImageToCloudinary, { type UploadedImage } from "./upload-to-cloud";
-import { withRetry } from "./utils";
 import type { ImageJobData } from "./queue";
 
 async function main() {
@@ -17,10 +16,7 @@ async function main() {
 
       await JobModel.findOneAndUpdate({ jobId }, { status: "processing", $inc: { attempts: 1 } });
 
-      const { url: imageUrl, width, height } = await withRetry(
-        () => generateImage(jobId, prompt, aspectRatio),
-        { maxAttempts: 3, baseDelayMs: 1500, label: `job:${jobId}` }
-      );
+      const { url: imageUrl, width, height } = await generateImage(jobId, prompt, aspectRatio);
 
       await JobModel.findOneAndUpdate({ jobId }, { status: "completed", imageUrl });
       await Post.create({ userId, imageUrl, prompt, width, height });
@@ -31,8 +27,18 @@ async function main() {
     }
   );
 
+  // BullMQ emits "failed" after every failed attempt, not just the last one.
+  // Only mark the job failed once its retries are used up, otherwise the UI shows an error mid-retry.
   worker.on("failed", async (job, err) => {
     if (!job) return;
+    const willRetry =
+      job.attemptsMade < (job.opts.attempts ?? 1) && !(err instanceof UnrecoverableError);
+    if (willRetry) {
+      console.warn(
+        `[WORKER] Job ${job.data.jobId} attempt ${job.attemptsMade} failed, retrying: ${err.message}`
+      );
+      return;
+    }
     await JobModel.findOneAndUpdate(
       { jobId: job.data.jobId },
       { status: "failed", error: err.message }
@@ -77,8 +83,9 @@ async function generateImage(jobId: string, prompt: string, aspectRatio: string)
   );
 
   if (!res.ok) {
-    if (res.status === 402) throw new Error("Insufficient pollen balance.");
-    if (res.status === 401) throw new Error("Invalid API Key.");
+    // Retrying can't fix these; UnrecoverableError makes BullMQ fail the job immediately
+    if (res.status === 402) throw new UnrecoverableError("Insufficient pollen balance.");
+    if (res.status === 401) throw new UnrecoverableError("Invalid API Key.");
     if (res.status === 429) throw new Error("Rate limit exceeded.");
     throw new Error(`Generation failed: ${res.status}`);
   }
