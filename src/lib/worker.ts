@@ -24,6 +24,11 @@ async function main() {
     {
       connection: redisConnection,
       concurrency: 5,
+      // Idle polling counts against Upstash's command quota. New jobs still wake the worker
+      // instantly, so a long drainDelay adds no latency. stalledInterval only affects how
+      // fast a job orphaned by a crashed worker is recovered.
+      drainDelay: 60,
+      stalledInterval: 120_000,
     }
   );
 
