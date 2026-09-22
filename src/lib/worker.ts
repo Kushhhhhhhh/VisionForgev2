@@ -1,3 +1,4 @@
+import { createServer } from "node:http";
 import { Worker, Job, UnrecoverableError } from "bullmq";
 import { redisConnection } from "./redisConnection";
 import { connectToDB } from "./db";
@@ -55,9 +56,21 @@ async function main() {
 
   console.log("[WORKER] Ready — listening for image-generation jobs");
 
+  // Hosts that only offer "web services" (e.g. Render's free tier) need something listening on $PORT.
+  // Locally PORT is unset, so no server starts.
+  const port = process.env.PORT;
+  const healthServer = port
+    ? createServer((_req, res) => {
+        const healthy = worker.isRunning();
+        res.writeHead(healthy ? 200 : 503, { "Content-Type": "text/plain" });
+        res.end(healthy ? "ok" : "worker not running");
+      }).listen(Number(port), "0.0.0.0", () => console.log(`[WORKER] Health endpoint listening on 0.0.0.0:${port}`))
+    : null;
+
   // Graceful shutdown: finish in-flight jobs before exiting.
   // Without this, a restart (deploy, crash) leaves jobs stuck in "processing".
   const shutdown = async () => {
+    healthServer?.close();
     await worker.close();
     process.exit(0);
   };
