@@ -22,6 +22,8 @@ export async function checkRateLimit(
   userId: string,
   options: { maxRequests?: number; windowMs?: number } = {}
 ): Promise<RateLimitResult> {
+  if (!process.env.REDIS_URL) return { allowed: true, retryAfterMs: 0 };
+
   const { maxRequests = 5, windowMs = 60_000 } = options;
   const now   = Date.now();
   const key    = `ratelimit:${userId}`;

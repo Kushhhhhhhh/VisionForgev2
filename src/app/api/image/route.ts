@@ -5,12 +5,20 @@ import Job from "@/model/jobModel";
 import Post from "@/model/postModel";
 import { addImageJob } from "@/lib/queue";
 import { checkRateLimit } from "@/lib/rateLimiter";
+import { isRedisConfigured } from "@/lib/redisConnection";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: NextRequest) {
   try {
     const { userId } = getAuth(request);
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!isRedisConfigured()) {
+      return NextResponse.json(
+        { error: "Image generation isn't available in this environment." },
+        { status: 503 }
+      );
+    }
 
     const { allowed, retryAfterMs } = await checkRateLimit(userId);
     if (!allowed) {

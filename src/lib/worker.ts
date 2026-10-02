@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { Worker, Job, UnrecoverableError } from "bullmq";
-import { redisConnection } from "./redisConnection";
+import { getRedisConnection, isRedisConfigured } from "./redisConnection";
 import { connectToDB } from "./db";
 import JobModel from "@/model/jobModel";
 import Post from "@/model/postModel";
@@ -8,6 +8,11 @@ import uploadImageToCloudinary, { type UploadedImage } from "./upload-to-cloud";
 import type { ImageJobData } from "./queue";
 
 async function main() {
+  if (!isRedisConfigured()) {
+    console.log("[WORKER] REDIS_URL is not set, so there is no queue to process. Exiting.");
+    process.exit(0);
+  }
+
   await connectToDB();
 
   const worker = new Worker<ImageJobData>(
@@ -23,13 +28,11 @@ async function main() {
       await Post.create({ userId, imageUrl, prompt, width, height });
     },
     {
-      connection: redisConnection,
+      connection: getRedisConnection(),
       concurrency: 5,
-      // Idle polling counts against Upstash's command quota. New jobs still wake the worker
-      // instantly, so a long drainDelay adds no latency. stalledInterval only affects how
-      // fast a job orphaned by a crashed worker is recovered.
-      drainDelay: 60,
-      stalledInterval: 120_000,
+      // Idle polling is metered by Upstash; new jobs still wake the worker instantly via the queue marker.
+      drainDelay: 180,
+      stalledInterval: 300_000, // a restarted worker also checks for orphaned jobs on startup
     }
   );
 

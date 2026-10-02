@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { redisConnection } from "./redisConnection";
+import { getRedisConnection } from "./redisConnection";
 
 export interface ImageJobData {
   jobId: string;
@@ -8,16 +8,21 @@ export interface ImageJobData {
   aspectRatio: string;
 }
 
-export const imageQueue = new Queue<ImageJobData>("image-generation", {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: "exponential", delay: 2000 }, // BullMQ handles retries too
-    removeOnComplete: { count: 100 },
-    removeOnFail:     { count: 50 },
-  },
-});
+let imageQueue: Queue<ImageJobData> | null = null;
+
+function getImageQueue() {
+  imageQueue ??= new Queue<ImageJobData>("image-generation", {
+    connection: getRedisConnection(),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 2000 }, // BullMQ handles retries too
+      removeOnComplete: { count: 100 },
+      removeOnFail:     { count: 50 },
+    },
+  });
+  return imageQueue;
+}
 
 export async function addImageJob(data: ImageJobData) {
-  return imageQueue.add("generate", data, { jobId: data.jobId });
+  return getImageQueue().add("generate", data, { jobId: data.jobId });
 }
